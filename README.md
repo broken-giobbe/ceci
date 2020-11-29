@@ -1,2 +1,2 @@
 # ceci
-Our IoT sensor/actuator node based around the ESP8266
+Our IoT sensor/actuator nodes based around the ESP8266
