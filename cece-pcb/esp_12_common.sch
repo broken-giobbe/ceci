@@ -294,104 +294,8 @@ Text HLabel 7250 3800 2    50   Input ~ 0
 TX
 Text HLabel 7250 3900 2    50   Input ~ 0
 RX
-$Comp
-L Jumper:SolderJumper_2_Bridged JP2
-U 1 1 5FC406E6
-P 7850 2000
-F 0 "JP2" H 7850 2113 50  0000 C CNN
-F 1 "D0/GPIO16" H 7850 2114 50  0001 C CNN
-F 2 "Jumper:SolderJumper-2_P1.3mm_Bridged_Pad1.0x1.5mm" H 7850 2000 50  0001 C CNN
-F 3 "~" H 7850 2000 50  0001 C CNN
-	1    7850 2000
-	1    0    0    -1  
-$EndComp
-$Comp
-L Jumper:SolderJumper_2_Bridged JP3
-U 1 1 5FC41135
-P 7850 2200
-F 0 "JP3" H 7850 2313 50  0000 C CNN
-F 1 "D5/GPIO14" H 7850 2314 50  0001 C CNN
-F 2 "Jumper:SolderJumper-2_P1.3mm_Bridged_Pad1.0x1.5mm" H 7850 2200 50  0001 C CNN
-F 3 "~" H 7850 2200 50  0001 C CNN
-	1    7850 2200
-	1    0    0    -1  
-$EndComp
-$Comp
-L Jumper:SolderJumper_2_Bridged JP4
-U 1 1 5FC4170D
-P 7850 2400
-F 0 "JP4" H 7850 2513 50  0000 C CNN
-F 1 "D6/GPIO12" H 7850 2514 50  0001 C CNN
-F 2 "Jumper:SolderJumper-2_P1.3mm_Bridged_Pad1.0x1.5mm" H 7850 2400 50  0001 C CNN
-F 3 "~" H 7850 2400 50  0001 C CNN
-	1    7850 2400
-	1    0    0    -1  
-$EndComp
-$Comp
-L Jumper:SolderJumper_2_Bridged JP5
-U 1 1 5FC41AF4
-P 7850 2600
-F 0 "JP5" H 7850 2713 50  0000 C CNN
-F 1 "D7/GPIO13" H 7850 2714 50  0001 C CNN
-F 2 "Jumper:SolderJumper-2_P1.3mm_Bridged_Pad1.0x1.5mm" H 7850 2600 50  0001 C CNN
-F 3 "~" H 7850 2600 50  0001 C CNN
-	1    7850 2600
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	7700 2000 7650 2000
-Wire Wire Line
-	7700 2200 7650 2200
-Wire Wire Line
-	7700 2400 7650 2400
-Wire Wire Line
-	7700 2600 7650 2600
 Wire Wire Line
 	4950 4600 4950 4500
-$Comp
-L Jumper:SolderJumper_2_Bridged JP7
-U 1 1 5FC7D052
-P 9150 2000
-F 0 "JP7" H 9150 2113 50  0000 C CNN
-F 1 "D1/GPIO5" H 9150 2114 50  0001 C CNN
-F 2 "Jumper:SolderJumper-2_P1.3mm_Bridged_Pad1.0x1.5mm" H 9150 2000 50  0001 C CNN
-F 3 "~" H 9150 2000 50  0001 C CNN
-	1    9150 2000
-	1    0    0    -1  
-$EndComp
-$Comp
-L Jumper:SolderJumper_2_Bridged JP8
-U 1 1 5FC7E515
-P 9150 2200
-F 0 "JP8" H 9150 2313 50  0000 C CNN
-F 1 "D2/GPIO4" H 9150 2314 50  0001 C CNN
-F 2 "Jumper:SolderJumper-2_P1.3mm_Bridged_Pad1.0x1.5mm" H 9150 2200 50  0001 C CNN
-F 3 "~" H 9150 2200 50  0001 C CNN
-	1    9150 2200
-	1    0    0    -1  
-$EndComp
-$Comp
-L Jumper:SolderJumper_2_Bridged JP9
-U 1 1 5FC7EA08
-P 9150 2400
-F 0 "JP9" H 9150 2513 50  0000 C CNN
-F 1 "D3/GPIO0" H 9150 2514 50  0001 C CNN
-F 2 "Jumper:SolderJumper-2_P1.3mm_Bridged_Pad1.0x1.5mm" H 9150 2400 50  0001 C CNN
-F 3 "~" H 9150 2400 50  0001 C CNN
-	1    9150 2400
-	1    0    0    -1  
-$EndComp
-$Comp
-L Jumper:SolderJumper_2_Bridged JP10
-U 1 1 5FC7F09B
-P 9150 2600
-F 0 "JP10" H 9150 2467 50  0000 C CNN
-F 1 "D4/GPIO2" H 9150 2714 50  0001 C CNN
-F 2 "Jumper:SolderJumper-2_P1.3mm_Bridged_Pad1.0x1.5mm" H 9150 2600 50  0001 C CNN
-F 3 "~" H 9150 2600 50  0001 C CNN
-	1    9150 2600
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	7250 3800 6950 3800
 Wire Wire Line
@@ -422,16 +326,8 @@ Text Label 8750 2000 0    50   ~ 0
 GPIO5
 Wire Wire Line
 	8750 2000 9000 2000
-Wire Wire Line
-	9300 2000 9400 2000
 Text Notes 3250 6800 0    50   ~ 0
 https://www.wemos.cc/en/latest/_static/files/sch_d1_mini_v3.0.0.pdf
-Wire Wire Line
-	9300 2200 9400 2200
-Wire Wire Line
-	9300 2400 9400 2400
-Wire Wire Line
-	9300 2600 9400 2600
 Wire Wire Line
 	4950 4500 5150 4500
 Connection ~ 4950 4500
@@ -472,21 +368,8 @@ Text Label 8200 2600 0    50   ~ 0
 GPIO13
 Text Label 8200 2800 0    50   ~ 0
 GPIO15
-$Comp
-L Jumper:SolderJumper_2_Bridged JP6
-U 1 1 5FD1EFF9
-P 7850 2800
-F 0 "JP6" H 7850 2913 50  0000 C CNN
-F 1 "D8/GPIO15" H 7850 2914 50  0001 C CNN
-F 2 "Jumper:SolderJumper-2_P1.3mm_Bridged_Pad1.0x1.5mm" H 7850 2800 50  0001 C CNN
-F 3 "~" H 7850 2800 50  0001 C CNN
-	1    7850 2800
-	1    0    0    -1  
-$EndComp
 Text HLabel 7650 2800 0    50   Input ~ 0
 D8
-Wire Wire Line
-	7650 2800 7700 2800
 Wire Wire Line
 	8000 2800 8200 2800
 Wire Wire Line
@@ -496,11 +379,7 @@ Wire Wire Line
 Wire Wire Line
 	8000 2200 8200 2200
 Wire Wire Line
-	8000 2400 8200 2400
-Wire Wire Line
 	9000 2200 8750 2200
-Wire Wire Line
-	8750 2400 9000 2400
 Wire Wire Line
 	9000 2600 8750 2600
 Text Label 8750 2200 0    50   ~ 0
@@ -593,7 +472,7 @@ U 1 1 5FC176C5
 P 6050 4100
 F 0 "U1" H 6050 4865 50  0000 C CNN
 F 1 "ESP-12F" H 6050 4774 50  0000 C CNN
-F 2 "ESP8266:ESP-12E_SMD" H 6050 4100 50  0001 C CNN
+F 2 "ESP8266:ESP-12E" H 6050 4100 50  0001 C CNN
 F 3 "" H 6050 4100 50  0001 C CNN
 	1    6050 4100
 	1    0    0    -1  
@@ -680,4 +559,125 @@ Wire Wire Line
 Connection ~ 6950 4800
 Wire Wire Line
 	6950 4800 6950 4850
+$Comp
+L Device:Net-Tie_2 NT1
+U 1 1 5FC7D93D
+P 7900 2000
+F 0 "NT1" H 7900 2089 50  0000 C CNN
+F 1 "D0/GPIO16" H 7900 2090 50  0001 C CNN
+F 2 "NetTie:NetTie-2_SMD_Pad0.5mm" H 7900 2000 50  0001 C CNN
+F 3 "~" H 7900 2000 50  0001 C CNN
+	1    7900 2000
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	8000 2400 8200 2400
+$Comp
+L Device:Net-Tie_2 NT2
+U 1 1 5FC808A4
+P 7900 2200
+F 0 "NT2" H 7900 2289 50  0000 C CNN
+F 1 "D5/GPIO14" H 7900 2290 50  0001 C CNN
+F 2 "NetTie:NetTie-2_SMD_Pad0.5mm" H 7900 2200 50  0001 C CNN
+F 3 "~" H 7900 2200 50  0001 C CNN
+	1    7900 2200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:Net-Tie_2 NT3
+U 1 1 5FC80AA9
+P 7900 2400
+F 0 "NT3" H 7900 2489 50  0000 C CNN
+F 1 "D6/GPIO12" H 7900 2490 50  0001 C CNN
+F 2 "NetTie:NetTie-2_SMD_Pad0.5mm" H 7900 2400 50  0001 C CNN
+F 3 "~" H 7900 2400 50  0001 C CNN
+	1    7900 2400
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:Net-Tie_2 NT4
+U 1 1 5FC80D08
+P 7900 2600
+F 0 "NT4" H 7900 2689 50  0000 C CNN
+F 1 "D7/GPIO13" H 7900 2690 50  0001 C CNN
+F 2 "NetTie:NetTie-2_SMD_Pad0.5mm" H 7900 2600 50  0001 C CNN
+F 3 "~" H 7900 2600 50  0001 C CNN
+	1    7900 2600
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:Net-Tie_2 NT5
+U 1 1 5FC80F66
+P 7900 2800
+F 0 "NT5" H 7900 2889 50  0000 C CNN
+F 1 "D8/GPIO15" H 7900 2890 50  0001 C CNN
+F 2 "NetTie:NetTie-2_SMD_Pad0.5mm" H 7900 2800 50  0001 C CNN
+F 3 "~" H 7900 2800 50  0001 C CNN
+	1    7900 2800
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:Net-Tie_2 NT9
+U 1 1 5FC8132F
+P 9100 2600
+F 0 "NT9" H 9100 2689 50  0000 C CNN
+F 1 "D4/GPIO2" H 9100 2690 50  0001 C CNN
+F 2 "NetTie:NetTie-2_SMD_Pad0.5mm" H 9100 2600 50  0001 C CNN
+F 3 "~" H 9100 2600 50  0001 C CNN
+	1    9100 2600
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	8750 2400 9000 2400
+$Comp
+L Device:Net-Tie_2 NT8
+U 1 1 5FC81B49
+P 9100 2400
+F 0 "NT8" H 9100 2489 50  0000 C CNN
+F 1 "D3/GPIO0" H 9100 2490 50  0001 C CNN
+F 2 "NetTie:NetTie-2_SMD_Pad0.5mm" H 9100 2400 50  0001 C CNN
+F 3 "~" H 9100 2400 50  0001 C CNN
+	1    9100 2400
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:Net-Tie_2 NT7
+U 1 1 5FC81DEB
+P 9100 2200
+F 0 "NT7" H 9100 2289 50  0000 C CNN
+F 1 "D2/GPIO4" H 9100 2290 50  0001 C CNN
+F 2 "NetTie:NetTie-2_SMD_Pad0.5mm" H 9100 2200 50  0001 C CNN
+F 3 "~" H 9100 2200 50  0001 C CNN
+	1    9100 2200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:Net-Tie_2 NT6
+U 1 1 5FC82063
+P 9100 2000
+F 0 "NT6" H 9100 2089 50  0000 C CNN
+F 1 "D1/GPIO5" H 9100 2090 50  0001 C CNN
+F 2 "NetTie:NetTie-2_SMD_Pad0.5mm" H 9100 2000 50  0001 C CNN
+F 3 "~" H 9100 2000 50  0001 C CNN
+	1    9100 2000
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	7650 2000 7800 2000
+Wire Wire Line
+	7650 2200 7800 2200
+Wire Wire Line
+	7650 2400 7800 2400
+Wire Wire Line
+	7650 2600 7800 2600
+Wire Wire Line
+	7650 2800 7800 2800
+Wire Wire Line
+	9200 2000 9400 2000
+Wire Wire Line
+	9200 2200 9400 2200
+Wire Wire Line
+	9200 2400 9400 2400
+Wire Wire Line
+	9200 2600 9400 2600
 $EndSCHEMATC

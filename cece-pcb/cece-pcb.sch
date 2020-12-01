@@ -36,12 +36,12 @@ F16 "D8" I L 5300 4750 50
 F17 "GND" I R 6300 4750 50 
 $EndSheet
 Wire Wire Line
-	5300 4150 5100 4150
+	5300 4600 5100 4600
 Wire Wire Line
 	6300 4150 6450 4150
 Wire Wire Line
 	6300 4300 6450 4300
-Text Label 5100 4150 0    50   ~ 0
+Text Label 5100 4600 0    50   ~ 0
 RLY
 Text Label 6450 4150 0    50   ~ 0
 HTU_SCL
@@ -609,12 +609,12 @@ Wire Wire Line
 $Comp
 L Device:R_US R13
 U 1 1 5FE041BA
-P 5000 4750
-F 0 "R13" V 4795 4750 50  0000 C CNN
-F 1 "1k" V 4886 4750 50  0000 C CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal" V 5040 4740 50  0001 C CNN
-F 3 "~" H 5000 4750 50  0001 C CNN
-	1    5000 4750
+P 4950 4750
+F 0 "R13" V 4745 4750 50  0000 C CNN
+F 1 "1k" V 4836 4750 50  0000 C CNN
+F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal" V 4990 4740 50  0001 C CNN
+F 3 "~" H 4950 4750 50  0001 C CNN
+	1    4950 4750
 	0    1    1    0   
 $EndComp
 $Comp
@@ -629,9 +629,9 @@ F 3 "~" H 4750 5000 50  0001 C CNN
 	0    -1   -1   0   
 $EndComp
 Wire Wire Line
-	5300 4750 5150 4750
+	5300 4750 5100 4750
 Wire Wire Line
-	4850 4750 4750 4750
+	4800 4750 4750 4750
 Wire Wire Line
 	4750 4750 4750 4850
 $Comp
@@ -763,7 +763,7 @@ Wire Wire Line
 	1800 2050 1800 1950
 NoConn ~ 5200 4300
 NoConn ~ 5200 4450
-NoConn ~ 5200 4600
+NoConn ~ 5200 4150
 NoConn ~ 6450 4600
 NoConn ~ 6450 4450
 Wire Wire Line
@@ -771,7 +771,7 @@ Wire Wire Line
 Wire Wire Line
 	5200 4450 5300 4450
 Wire Wire Line
-	5200 4600 5300 4600
+	5200 4150 5300 4150
 Wire Wire Line
 	6450 4600 6300 4600
 Wire Wire Line
