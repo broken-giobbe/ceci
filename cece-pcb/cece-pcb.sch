@@ -216,28 +216,6 @@ F 3 "" H 10000 5000 50  0001 C CNN
 	1    10000 5000
 	1    0    0    -1  
 $EndComp
-$Comp
-L power:+3V3 #PWR018
-U 1 1 5FD89DF7
-P 7800 3050
-F 0 "#PWR018" H 7800 2900 50  0001 C CNN
-F 1 "+3V3" H 7815 3223 50  0000 C CNN
-F 2 "" H 7800 3050 50  0001 C CNN
-F 3 "" H 7800 3050 50  0001 C CNN
-	1    7800 3050
-	1    0    0    -1  
-$EndComp
-$Comp
-L power:+5V #PWR019
-U 1 1 5FD8A15A
-P 8250 3050
-F 0 "#PWR019" H 8250 2900 50  0001 C CNN
-F 1 "+5V" H 8265 3223 50  0000 C CNN
-F 2 "" H 8250 3050 50  0001 C CNN
-F 3 "" H 8250 3050 50  0001 C CNN
-	1    8250 3050
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	9900 3300 10000 3300
 Wire Wire Line
@@ -277,21 +255,7 @@ Wire Wire Line
 Wire Wire Line
 	10200 2800 10050 2800
 Wire Wire Line
-	10050 2800 10050 2500
-Wire Wire Line
-	10050 2500 9150 2500
-Wire Wire Line
-	9150 2500 9150 2800
-Wire Wire Line
 	9150 2800 9300 2800
-Wire Wire Line
-	9000 3000 9000 2400
-Wire Wire Line
-	9000 2400 10150 2400
-Wire Wire Line
-	10150 2400 10150 2700
-Wire Wire Line
-	10150 2700 10200 2700
 $Comp
 L Converter_ACDC:HLK-PM01 PS1
 U 1 1 5FD9E9F4
@@ -309,9 +273,9 @@ Text Label 10050 2900 0    50   ~ 0
 C
 Text Label 10050 3000 0    50   ~ 0
 LN
-Text Label 10050 2800 0    50   ~ 0
+Text Label 10050 2700 0    50   ~ 0
 NO
-Text Label 10050 2400 0    50   ~ 0
+Text Label 10050 2800 0    50   ~ 0
 NC
 Wire Wire Line
 	1400 2750 1300 2750
@@ -376,7 +340,7 @@ $EndComp
 Wire Wire Line
 	8550 3800 8550 3750
 Wire Wire Line
-	9000 3000 9300 3000
+	9150 3000 9300 3000
 $Comp
 L Battery_Management:MCP73811T-420I-OT U2
 U 1 1 5FDC3166
@@ -578,32 +542,8 @@ Wire Wire Line
 Connection ~ 2550 5100
 Wire Wire Line
 	2550 5100 2550 5200
-$Comp
-L Device:R_US R12
-U 1 1 5FDFCF50
-P 4950 4000
-F 0 "R12" V 4745 4000 50  0000 C CNN
-F 1 "100k" V 4836 4000 50  0000 C CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal" V 4990 3990 50  0001 C CNN
-F 3 "~" H 4950 4000 50  0001 C CNN
-	1    4950 4000
-	0    1    1    0   
-$EndComp
 Wire Wire Line
 	5100 4000 5300 4000
-$Comp
-L power:+BATT #PWR023
-U 1 1 5FDFFC00
-P 4650 3900
-F 0 "#PWR023" H 4650 3750 50  0001 C CNN
-F 1 "+BATT" H 4665 4073 50  0000 C CNN
-F 2 "" H 4650 3900 50  0001 C CNN
-F 3 "" H 4650 3900 50  0001 C CNN
-	1    4650 3900
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	4650 3900 4650 4000
 Wire Wire Line
 	4650 4000 4800 4000
 $Comp
@@ -842,24 +782,45 @@ $EndComp
 Connection ~ 8250 5650
 Wire Wire Line
 	8250 5650 8000 5650
+Wire Wire Line
+	10050 2700 10200 2700
+Text Label 9150 2800 0    50   ~ 0
+NO
+Text Label 9150 3000 0    50   ~ 0
+NC
 $Comp
-L Jumper:SolderJumper_3_Bridged12 JP12
-U 1 1 5FD8AB22
-P 8250 3300
-F 0 "JP12" V 8204 3368 50  0000 L CNN
-F 1 "RLY_VCC" V 8295 3368 50  0000 L CNN
-F 2 "Jumper:SolderJumper-3_P1.3mm_Bridged12_Pad1.0x1.5mm" H 8250 3300 50  0001 C CNN
-F 3 "~" H 8250 3300 50  0001 C CNN
-	1    8250 3300
-	0    -1   1    0   
+L Jumper:SolderJumper_2_Bridged JP2
+U 1 1 5FCD2589
+P 4950 4000
+F 0 "JP2" H 4950 4205 50  0000 C CNN
+F 1 "VBATT_A0" H 4950 4114 50  0000 C CNN
+F 2 "Jumper:SolderJumper-2_P1.3mm_Bridged_Pad1.0x1.5mm" H 4950 4000 50  0001 C CNN
+F 3 "~" H 4950 4000 50  0001 C CNN
+	1    4950 4000
+	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	8550 3300 8400 3300
-Connection ~ 8550 3300
-Wire Wire Line
-	8250 3050 8250 3100
-Wire Wire Line
-	7800 3050 7800 3500
-Wire Wire Line
-	7800 3500 8250 3500
+	4650 3900 4650 4000
+$Comp
+L power:+BATT #PWR023
+U 1 1 5FDFFC00
+P 4650 3900
+F 0 "#PWR023" H 4650 3750 50  0001 C CNN
+F 1 "+BATT" H 4665 4073 50  0000 C CNN
+F 2 "" H 4650 3900 50  0001 C CNN
+F 3 "" H 4650 3900 50  0001 C CNN
+	1    4650 3900
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+BATT #PWR?
+U 1 1 5FD3EF92
+P 9200 3300
+F 0 "#PWR?" H 9200 3150 50  0001 C CNN
+F 1 "+BATT" H 9215 3473 50  0000 C CNN
+F 2 "" H 9200 3300 50  0001 C CNN
+F 3 "" H 9200 3300 50  0001 C CNN
+	1    9200 3300
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC
