@@ -61,5 +61,6 @@ __vm/
 *.vcxproj*
 
 # Config files contain sensitive information (wifi ssid etc.)
-cece-firmware/*/data/config.ini
+cece-firmware/*/data/*
+!cece-firmware/*/data/config-example.ini
 
