@@ -236,20 +236,18 @@ Wire Wire Line
 Text Label 9100 4700 0    50   ~ 0
 RLY
 $Comp
-L Connector:Screw_Terminal_01x04 J4
+L Connector:Screw_Terminal_01x05 J4
 U 1 1 5FD96487
-P 10400 2800
-F 0 "J4" H 10480 2792 50  0000 L CNN
-F 1 "VAC" H 10480 2701 50  0000 L CNN
-F 2 "TerminalBlock:TerminalBlock_bornier-4_P5.08mm" H 10400 2800 50  0001 C CNN
-F 3 "~" H 10400 2800 50  0001 C CNN
-	1    10400 2800
+P 10450 2250
+F 0 "J4" H 10530 2242 50  0000 L CNN
+F 1 "VAC" H 10530 2151 50  0000 L CNN
+F 2 "TerminalBlock:TerminalBlock_bornier-5_P5.08mm" H 10450 2250 50  0001 C CNN
+F 3 "~" H 10450 2250 50  0001 C CNN
+	1    10450 2250
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	10200 2900 9900 2900
-Wire Wire Line
-	10200 2800 10050 2800
+	10250 2250 10100 2250
 Wire Wire Line
 	9150 2800 9300 2800
 $Comp
@@ -264,23 +262,15 @@ F 3 "http://www.hlktech.net/product_detail.php?ProId=54" H 2200 2500 50  0001 C 
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	10200 3000 10050 3000
-Text Label 10050 2900 0    50   ~ 0
+	10250 2450 10100 2450
+Text Label 10000 2900 0    50   ~ 0
 C
-Text Label 10050 3000 0    50   ~ 0
-LN
-Text Label 10050 2700 0    50   ~ 0
+Text Label 10100 2050 0    50   ~ 0
 NO
-Text Label 10050 2800 0    50   ~ 0
+Text Label 10100 2250 0    50   ~ 0
 NC
 Wire Wire Line
-	1400 2750 1300 2750
-Wire Wire Line
-	1400 2950 1300 2950
-Text Label 1300 2750 0    50   ~ 0
-LN
-Text Label 1300 2950 0    50   ~ 0
-C
+	1400 2750 1250 2750
 $Comp
 L power:GND #PWR015
 U 1 1 5FDA9D07
@@ -342,7 +332,7 @@ L Battery_Management:MCP73811T-420I-OT U2
 U 1 1 5FDC3166
 P 2000 4700
 F 0 "U2" H 2150 4600 50  0000 L CNN
-F 1 "MCP73811T-420I-OT" H 2050 4950 50  0000 L CNN
+F 1 "MCP73811T-420I-OT" H 1700 4400 50  0000 L CNN
 F 2 "Package_TO_SOT_SMD:SOT-23-5" H 2050 4450 50  0001 L CNN
 F 3 "http://ww1.microchip.com/downloads/en/DeviceDoc/22036b.pdf" H 1750 4950 50  0001 C CNN
 	1    2000 4700
@@ -779,7 +769,7 @@ Connection ~ 8250 5650
 Wire Wire Line
 	8250 5650 8000 5650
 Wire Wire Line
-	10050 2700 10200 2700
+	10100 2150 10250 2150
 Text Label 9150 2800 0    50   ~ 0
 NO
 Text Label 9150 3000 0    50   ~ 0
@@ -823,4 +813,39 @@ Wire Wire Line
 	4950 2600 5250 2600
 Wire Wire Line
 	4700 3000 5250 3000
+Wire Wire Line
+	9900 2900 10000 2900
+Wire Wire Line
+	10100 2350 10250 2350
+Wire Wire Line
+	10100 2050 10250 2050
+Text Label 10100 2150 0    50   ~ 0
+C
+Text Label 1250 2750 0    50   ~ 0
+ACL
+Text Label 1250 2950 0    50   ~ 0
+ACN
+Wire Wire Line
+	1250 2950 1400 2950
+Text Label 10100 2450 0    50   ~ 0
+ACL
+Text Label 10100 2350 0    50   ~ 0
+ACN
+$Comp
+L Jumper:SolderJumper_2_Open JP3
+U 1 1 5FD1A80F
+P 2300 4350
+F 0 "JP3" H 2300 4555 50  0000 C CNN
+F 1 "VBATT 5V" H 2300 4464 50  0000 C CNN
+F 2 "Jumper:SolderJumper-2_P1.3mm_Open_Pad1.0x1.5mm" H 2300 4350 50  0001 C CNN
+F 3 "~" H 2300 4350 50  0001 C CNN
+	1    2300 4350
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2150 4350 2000 4350
+Wire Wire Line
+	2550 4350 2550 4600
+Wire Wire Line
+	2550 4350 2450 4350
 $EndSCHEMATC

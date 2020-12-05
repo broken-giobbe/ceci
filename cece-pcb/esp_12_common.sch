@@ -467,7 +467,7 @@ Wire Wire Line
 Text Label 7100 4400 0    50   ~ 0
 GPIO15
 $Comp
-L cece-pcb-rescue:ESP-12F-ESP8266 U1
+L cece-pcb-rescue:ESP-12F-ESP8266-cece-pcb-rescue U1
 U 1 1 5FC176C5
 P 6050 4100
 AR Path="/5FC176C5" Ref="U1"  Part="1" 
