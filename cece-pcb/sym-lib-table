@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name cece-pcb-rescue)(type Legacy)(uri ${KIPRJMOD}/cece-pcb-rescue.lib)(options "")(descr ""))
+)
