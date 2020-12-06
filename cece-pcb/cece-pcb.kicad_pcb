@@ -1,4 +1,4 @@
-(kicad_pcb (version 20171130) (host pcbnew 5.1.8+dfsg1-1)
+(kicad_pcb (version 20171130) (host pcbnew "(5.1.5)-3")
 
   (general
     (thickness 1.6)
@@ -34,7 +34,7 @@
   )
 
   (setup
-    (last_trace_width 0.635)
+    (last_trace_width 0.127)
     (user_trace_width 0.254)
     (user_trace_width 0.381)
     (user_trace_width 0.508)
@@ -94,9 +94,9 @@
       (subtractmaskfromsilk false)
       (outputformat 1)
       (mirror false)
-      (drillshape 1)
+      (drillshape 0)
       (scaleselection 1)
-      (outputdirectory ""))
+      (outputdirectory "gerbers/"))
   )
 
   (net 0 "")
@@ -2473,7 +2473,6 @@
   (segment (start 160.655 37.465) (end 160.655 41.275) (width 1.27) (layer F.Cu) (net 15))
   (segment (start 154.94 46.99) (end 154.94 61.214) (width 1.27) (layer F.Cu) (net 15))
   (segment (start 160.655 41.275) (end 154.94 46.99) (width 1.27) (layer F.Cu) (net 15))
-  (segment (start 129.62 40.72) (end 129.62 37.084) (width 1.27) (layer F.Cu) (net 35) (tstamp 5FC9C832))
   (segment (start 155.575 40.379) (end 148.94 47.014) (width 1.27) (layer F.Cu) (net 16))
   (segment (start 155.575 37.465) (end 155.575 40.379) (width 1.27) (layer F.Cu) (net 16))
   (segment (start 146.94 105.79) (end 147.955 105.79) (width 0.508) (layer B.Cu) (net 17))
@@ -2554,12 +2553,13 @@
   (segment (start 130.556 70.104) (end 133.604 70.104) (width 0.635) (layer F.Cu) (net 33))
   (segment (start 145.034 37.084) (end 145.415 37.465) (width 1.27) (layer F.Cu) (net 34))
   (segment (start 134.62 37.084) (end 145.034 37.084) (width 1.27) (layer F.Cu) (net 34))
+  (segment (start 129.62 40.72) (end 129.62 37.084) (width 1.27) (layer F.Cu) (net 35) (tstamp 5FC9C832))
   (segment (start 131.064 42.164) (end 129.62 40.72) (width 1.27) (layer F.Cu) (net 35))
   (segment (start 147.91732 42.164) (end 131.064 42.164) (width 1.27) (layer F.Cu) (net 35))
   (segment (start 150.495 39.58632) (end 147.91732 42.164) (width 1.27) (layer F.Cu) (net 35))
   (segment (start 150.495 37.465) (end 150.495 39.58632) (width 1.27) (layer F.Cu) (net 35))
 
-  (zone (net 1) (net_name GND) (layer F.Cu) (tstamp 0) (hatch full 0.508)
+  (zone (net 1) (net_name GND) (layer F.Cu) (tstamp 5FCCBF21) (hatch full 0.508)
     (connect_pads (clearance 0.254))
     (min_thickness 0.254)
     (fill yes (arc_segments 32) (thermal_gap 0.254) (thermal_bridge_width 0.508))
@@ -3269,7 +3269,7 @@
       )
     )
   )
-  (zone (net 1) (net_name GND) (layer B.Cu) (tstamp 5FC981A4) (hatch full 0.508)
+  (zone (net 1) (net_name GND) (layer B.Cu) (tstamp 5FCCBF1E) (hatch full 0.508)
     (connect_pads (clearance 0.254))
     (min_thickness 0.254)
     (fill yes (arc_segments 32) (thermal_gap 0.254) (thermal_bridge_width 0.508))
@@ -4173,7 +4173,7 @@
       )
     )
   )
-  (zone (net 1) (net_name GND) (layer F.Cu) (tstamp 0) (hatch full 0.508)
+  (zone (net 1) (net_name GND) (layer F.Cu) (tstamp 5FCCBF1B) (hatch full 0.508)
     (connect_pads (clearance 0.254))
     (min_thickness 0.254)
     (fill yes (arc_segments 32) (thermal_gap 0.254) (thermal_bridge_width 0.508))

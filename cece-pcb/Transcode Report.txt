@@ -1,0 +1,108 @@
+
+
+   ---- Transcoding 'C:\Users\psca\AppData\Local\Temp\gerbers_importZIP\cece-pcb-F_Paste.gbr' ----   Sun Dec  6 12:23:36 2020
+
+D10   --> D100
+-----------------------------------------------------------------
+
+
+   ---- Transcoding 'C:\Users\psca\AppData\Local\Temp\gerbers_importZIP\cece-pcb-F_Mask.gbr' ----   Sun Dec  6 12:23:36 2020
+
+D10   --> D101
+D11   --> D102
+D12   --> D103
+D13   --> D104
+-----------------------------------------------------------------
+
+
+   ---- Transcoding 'C:\Users\psca\AppData\Local\Temp\gerbers_importZIP\cece-pcb-F_Cu.gbr' ----   Sun Dec  6 12:23:36 2020
+
+D11   --> D105
+D12   --> D106
+D13   --> D107
+D14   --> D108
+D15   --> D109
+D16   --> D110
+D17   --> D111
+D18   --> D112
+D19   --> D113
+D20   --> D114
+D21   --> D115
+D22   --> D116
+D23   --> D117
+D24   --> D118
+D25   --> D119
+D26   --> D120
+D27   --> D121
+D28   --> D122
+D29   --> D123
+D30   --> D124
+D31   --> D125
+-----------------------------------------------------------------
+
+
+   ---- Transcoding 'C:\Users\psca\AppData\Local\Temp\gerbers_importZIP\cece-pcb-B_Cu.gbr' ----   Sun Dec  6 12:23:36 2020
+
+D10   --> D126
+D11   --> D127
+D12   --> D128
+D13   --> D129
+D14   --> D130
+D15   --> D131
+D16   --> D132
+D17   --> D133
+D18   --> D134
+D19   --> D135
+D20   --> D136
+D21   --> D137
+D22   --> D138
+D23   --> D139
+D24   --> D140
+D31   --> D141
+D32   --> D142
+D33   --> D143
+D34   --> D144
+D35   --> D145
+D37   --> D146
+D38   --> D147
+-----------------------------------------------------------------
+
+
+   ---- Transcoding 'C:\Users\psca\AppData\Local\Temp\gerbers_importZIP\cece-pcb-B_Mask.gbr' ----   Sun Dec  6 12:23:36 2020
+
+D10   --> D148
+D11   --> D149
+D12   --> D150
+D13   --> D151
+D14   --> D152
+D15   --> D153
+D16   --> D154
+D17   --> D155
+D18   --> D156
+D19   --> D157
+D20   --> D158
+D21   --> D159
+D22   --> D160
+D23   --> D161
+D24   --> D162
+D31   --> D163
+-----------------------------------------------------------------
+
+
+   ---- Transcoding 'C:\Users\psca\AppData\Local\Temp\gerbers_importZIP\cece-pcb-B_Paste.gbr' ----   Sun Dec  6 12:23:36 2020
+
+D10   --> D164
+-----------------------------------------------------------------
+
+
+   ---- Transcoding 'C:\Users\psca\AppData\Local\Temp\gerbers_importZIP\cece-pcb-B_SilkS.gbr' ----   Sun Dec  6 12:23:36 2020
+
+D10   --> D165
+-----------------------------------------------------------------
+
+
+   ---- Transcoding 'C:\Users\psca\AppData\Local\Temp\gerbers_importZIP\cece-pcb-Edge_Cuts.gbr' ----   Sun Dec  6 12:23:36 2020
+
+D10   --> D166
+D11   --> D167
+-----------------------------------------------------------------
