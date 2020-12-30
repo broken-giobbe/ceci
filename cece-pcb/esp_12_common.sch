@@ -502,7 +502,7 @@ U 1 1 5FD55ACB
 P 5000 2650
 F 0 "JP11" V 4954 2698 50  0000 L CNN
 F 1 "PROG" V 5045 2698 50  0000 L CNN
-F 2 "Connector_PinHeader_1.27mm:PinHeader_2x01_P1.27mm_Vertical" H 5000 2650 50  0001 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical" H 5000 2650 50  0001 C CNN
 F 3 "~" H 5000 2650 50  0001 C CNN
 	1    5000 2650
 	0    1    1    0   

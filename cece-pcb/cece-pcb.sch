@@ -95,7 +95,7 @@ U 1 1 5FD6FD7F
 P 5450 2800
 F 0 "J1" H 5422 2732 50  0000 R CNN
 F 1 "SERIAL" H 5422 2823 50  0000 R CNN
-F 2 "Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical" H 5450 2800 50  0001 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical" H 5450 2800 50  0001 C CNN
 F 3 "~" H 5450 2800 50  0001 C CNN
 	1    5450 2800
 	-1   0    0    1   
@@ -140,7 +140,7 @@ U 1 1 5FD7426C
 P 6600 2750
 F 0 "J2" H 6628 2726 50  0000 L CNN
 F 1 "HTU21D" H 6628 2635 50  0000 L CNN
-F 2 "Connector_PinHeader_1.27mm:PinHeader_1x04_P1.27mm_Vertical" H 6600 2750 50  0001 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical" H 6600 2750 50  0001 C CNN
 F 3 "~" H 6600 2750 50  0001 C CNN
 	1    6600 2750
 	1    0    0    -1  
@@ -495,7 +495,7 @@ U 1 1 5FDE5C89
 P 3300 4800
 F 0 "J3" H 3380 4792 50  0000 L CNN
 F 1 "Li-Ion Battery" H 3380 4701 50  0000 L CNN
-F 2 "Connector_PinHeader_1.27mm:PinHeader_1x02_P1.27mm_Vertical" H 3300 4800 50  0001 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical" H 3300 4800 50  0001 C CNN
 F 3 "~" H 3300 4800 50  0001 C CNN
 	1    3300 4800
 	1    0    0    -1  
