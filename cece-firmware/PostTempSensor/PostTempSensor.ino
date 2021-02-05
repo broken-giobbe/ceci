@@ -3,39 +3,34 @@
 **/
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
+#include <PubSubClient.h>
+#include <elapsedMillis.h>
+#include <Wire.h>
+#include "SparkFunHTU21D.h"
 /* 
  * This is needed for using light sleep. See also:
  *    https://community.blynk.cc/t/esp8266-light-sleep/13584/16 
  *    https://github.com/esp8266/Arduino/issues/1381
  */
 extern "C" {
-  #include "user_interface.h"
+#include "user_interface.h"
 }
-#include <elapsedMillis.h>
-#include "FS.h"
-#include <SPIFFSIniFile.h>
-#include <Wire.h>
 
-#include "SparkFunHTU21D.h"
-HTU21D myHumidity;
+#include "ConfigParser.h"
 
 // Constant used to convert minutes to milliseconds
 #define MINS_TO_MILLIS (60*1000)
 // Baud rate for the UART port
 #define UART_BAUD_RATE 115200
-// Buffer length used for reading the config.ini file
-#define INI_BUF_LENGTH 80
-// Buffer length used for storing string values read from config.ini
-#define VAL_BUF_LENGTH 50
 // Builtin LED brightness when on
 #define LED_ON_BRIGHTNESS_PERCENT 8
 
-/*
- * The following variables are read from SPIFFS during init.
- */
-int measurement_interval_min = 1; // Measurement interval in minutes
-char node_name[VAL_BUF_LENGTH] = "A Horse with No Name"; // node name
-char post_endpoint[VAL_BUF_LENGTH]; // endpoint address
+// HTU21D temperature & Humidity sensor
+HTU21D myHumidity;
+
+WiFiClient wifiClient;
+PubSubClient mqttClient(wifiClient);
+#define MQTT_BUFFER_SIZE 50
 
 /* 
  *  The controls for the builtin LED are reversed.
@@ -49,45 +44,51 @@ void setBuiltinLEDBrightness(int percent)
   analogWrite(BUILTIN_LED, pwm_val);
 }
 
-inline void readDataAndSend() __attribute__((always_inline));
+/**
+ * Read sensor data and send it to the broker using MQTT
+ */
 void readDataAndSend()
 {
+  char msg[MQTT_BUFFER_SIZE];
+  
   // Take humidity and temperature reading
   float humd = myHumidity.readHumidity();
   float temp = myHumidity.readTemperature();
-  
-  // Send the data
-  WiFiClient client;
-  HTTPClient http;
-  
-  http.begin(client, post_endpoint);
-  http.addHeader("Content-Type", "application/json");
 
-  String post_str = (String)"{\"ID\": \"" + node_name + "\"," +
-                             "\"temp\": " + temp + "," +
-                             "\"rhum\": " + humd + "}";
-                               
-  Serial.println("[HTTP] POST: " + post_str);
-  int httpCode = http.POST(post_str);
+  snprintf (msg, MQTT_BUFFER_SIZE, "{\"temp\":%.1f,\"rhum\":%.1f}", temp, humd);
+  Serial.print("[MQTT] publish to: ");
+  Serial.print(config_mqtt_topic);
+  Serial.print(", payload: ");
+  Serial.println(msg);
+                             
+  mqttClient.publish(config_mqtt_topic, msg, 1);
+}
 
-  // httpCode will be negative on error
-  if (httpCode > 0) {
-    Serial.printf("[HTTP] POST succeeded: %d\n", httpCode);
-    // calling getString() is slow. Use it for debug only!
-    //Serial.println(http.getString());
-  } else {
-    Serial.printf("[HTTP] POST failed, error: %s\n", http.errorToString(httpCode).c_str());
+/**
+ * MQTT utility function to (re)connect to the broker
+ */
+void mqttReconnect()
+{
+  while (!mqttClient.connected())
+  {
+    Serial.print("[MQTT] Attempting connection...");
+
+    if (mqttClient.connect(config_node_name)) {
+      Serial.println(" Success.");
+      // (re)subscribe to the required topics
+      //client.subscribe("inTopic");
+    } else {
+      Serial.println(" Fail: rc=");
+      Serial.println(mqttClient.state());
+      Serial.println("[MQTT] Will try again in 5 seconds.");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
   }
-  
-  http.end();
 }
 
 void setup()
-{
-  char buffer[INI_BUF_LENGTH]; // buffer for reading config file
-  char wifi_ssid[VAL_BUF_LENGTH];
-  char wifi_psk[VAL_BUF_LENGTH];
-   
+{ 
   // initialize onboard LED as output and turn it on
   pinMode(BUILTIN_LED, OUTPUT);
   digitalWrite(BUILTIN_LED, LOW);
@@ -97,42 +98,39 @@ void setup()
   Serial.println("");
 
   // read config.ini file from SPIFFS and initialize variables
-  if (!SPIFFS.begin())
-  {
-      Serial.println("ERROR: SPIFFS.begin() failed. Stopping.");
-      while(1) ;
+  int retval = parseConfig();
+  switch (retval) {
+    case 0:
+      Serial.println("[Config] OK.");
+      break;
+    case E_SPIFFSINIT:
+      Serial.println("[Config] Invalid config file found. Aborting setup().");
+      while (1) yield(); // avoid triggering the WDT: https://sigmdel.ca/michel/program/esp8266/arduino/watchdogs_en.html
+      break;
+    case E_NOCONF:
+      Serial.println("[Config] No config file found. Aborting setup().");
+      while (1) yield();
+      break;
+    case E_INVCONF:
+      Serial.println("[Config] Invalid config file found. Aborting setup().");
+      while (1) yield();
+      break;
+    default:
+      Serial.println("[Config] WTF!? Something bad happened. Aborting setup().");
+      while (1) yield();
   }
-  
-  SPIFFSIniFile ini("/config.ini");
-  if (!ini.open())
-  {
-    Serial.println("ERROR: config.ini does not exist. Stopping.");
-    while (1) ;
-  }
-
-  if (!ini.validate(buffer, INI_BUF_LENGTH)) {
-    Serial.print("ERROR: config.ini not valid. Error: ");
-    Serial.print(ini.getError());
-    Serial.println(". Stopping.");
-    while (1) ;
-  }
-  ini.getValue("node", "name", buffer, INI_BUF_LENGTH, node_name, VAL_BUF_LENGTH);
-  ini.getValue("node", "endpoint", buffer, INI_BUF_LENGTH, post_endpoint, VAL_BUF_LENGTH);
-  ini.getValue("node", "meas_interval_min", buffer, INI_BUF_LENGTH, measurement_interval_min);
-  ini.getValue("wifi", "ssid", buffer, INI_BUF_LENGTH, wifi_ssid, VAL_BUF_LENGTH);
-  ini.getValue("wifi", "psk", buffer, INI_BUF_LENGTH, wifi_psk, VAL_BUF_LENGTH);
   
   // initialize wifi
   // Force the ESP into client-only mode (otherwhise light sleep cannot be enabled)
   WiFi.mode(WIFI_STA); 
-  WiFi.hostname(node_name);
+  WiFi.hostname(config_node_name);
 
   // Enable light sleep
   wifi_set_sleep_type(LIGHT_SLEEP_T);
 
   Serial.print("[WiFi] Connecting to ");
-  Serial.print(wifi_ssid);
-  WiFi.begin(wifi_ssid, wifi_psk);
+  Serial.print(config_wifi_ssid);
+  WiFi.begin(config_wifi_ssid, config_wifi_psk);
   while (WiFi.status() != WL_CONNECTED)
   {
     digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
@@ -144,7 +142,10 @@ void setup()
   Serial.println(" dBm");
   Serial.print("[WiFi] IP address: ");
   Serial.println(WiFi.localIP());
- 
+
+  // Initialize MQTT
+  mqttClient.setServer(config_mqtt_server, config_mqtt_port);
+  
   // initialize HTU21D temp sensor connected as in the following code
   // https://github.com/enjoyneering/HTU21D/blob/master/examples/HTU21D_Demo/HTU21D_Demo.ino
   myHumidity.begin();
@@ -155,14 +156,17 @@ void loop()
   elapsedMillis elapsed = 0; // count the time the node spent sending data for more accurate sleeping intervals
   
   setBuiltinLEDBrightness(LED_ON_BRIGHTNESS_PERCENT);
-  
+
   if ((WiFi.status() == WL_CONNECTED))
   {
+    mqttReconnect();
+    mqttClient.loop();
+    
     readDataAndSend();
   } else {
     Serial.println("[WiFi] Connection error");
   }
   
   setBuiltinLEDBrightness(0);
-  delay((measurement_interval_min * MINS_TO_MILLIS) - elapsed); // delay uses millisecond. We'd like to sleep for minutes
+  delay((config_meas_interval_min * MINS_TO_MILLIS) - elapsed); // delay uses millisecond. We'd like to sleep for minutes
 }
