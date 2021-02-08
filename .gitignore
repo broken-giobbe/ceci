@@ -59,6 +59,7 @@ boards.local.txt
 .vs/
 __vm/
 *.vcxproj*
+.vscode/
 
 # Config files contain sensitive information (wifi ssid etc.)
 cece-firmware/*/data/*
