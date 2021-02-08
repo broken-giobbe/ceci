@@ -1,22 +1,13 @@
 /**
  * TODO: Describe me 
 **/
-#include <ESP8266WiFi.h>
-#include <ESP8266HTTPClient.h>
 #include <PubSubClient.h>
 #include <elapsedMillis.h>
 #include <Wire.h>
-#include "SparkFunHTU21D.h"
-/* 
- * This is needed for using light sleep. See also:
- *    https://community.blynk.cc/t/esp8266-light-sleep/13584/16 
- *    https://github.com/esp8266/Arduino/issues/1381
- */
-extern "C" {
-#include "user_interface.h"
-}
+#include <SparkFunHTU21D.h>
 
 #include "ConfigParser.h"
+#include "WiFiManager.h"
 
 // Constant used to convert minutes to milliseconds
 #define MINS_TO_MILLIS (60*1000)
@@ -45,12 +36,16 @@ void setBuiltinLEDBrightness(int percent)
 }
 
 /**
- * Read sensor data and send it to the broker using MQTT
+ * Read sensor data and send it to the broker using MQTT.
+ * Make also sure that we call the loop() function and reconnect to the broker if needed
  */
-void readDataAndSend()
+void mqttReadDataAndSend()
 {
   char msg[MQTT_BUFFER_SIZE];
-  
+
+  mqttReconnect();
+  mqttClient.loop();
+
   // Take humidity and temperature reading
   float humd = myHumidity.readHumidity();
   float temp = myHumidity.readTemperature();
@@ -88,7 +83,10 @@ void mqttReconnect()
 }
 
 void setup()
-{ 
+{
+  // Shutdown the WiFi radio until everything has been set up properly
+  WiFiTurnOff();
+
   // initialize onboard LED as output and turn it on
   pinMode(BUILTIN_LED, OUTPUT);
   digitalWrite(BUILTIN_LED, LOW);
@@ -119,29 +117,6 @@ void setup()
       Serial.println("[Config] WTF!? Something bad happened. Aborting setup().");
       while (1) yield();
   }
-  
-  // initialize wifi
-  // Force the ESP into client-only mode (otherwhise light sleep cannot be enabled)
-  WiFi.mode(WIFI_STA); 
-  WiFi.hostname(config_node_name);
-
-  // Enable light sleep
-  wifi_set_sleep_type(LIGHT_SLEEP_T);
-
-  Serial.print("[WiFi] Connecting to ");
-  Serial.print(config_wifi_ssid);
-  WiFi.begin(config_wifi_ssid, config_wifi_psk);
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.print("\n[WiFi] Connected. RSSI = ");
-  Serial.print(WiFi.RSSI());
-  Serial.println(" dBm");
-  Serial.print("[WiFi] IP address: ");
-  Serial.println(WiFi.localIP());
 
   // Initialize MQTT
   mqttClient.setServer(config_mqtt_server, config_mqtt_port);
@@ -149,24 +124,18 @@ void setup()
   // initialize HTU21D temp sensor connected as in the following code
   // https://github.com/enjoyneering/HTU21D/blob/master/examples/HTU21D_Demo/HTU21D_Demo.ino
   myHumidity.begin();
+
+  // initialize wifi, putting the ESP into STA(client)-only mode
+  initWiFi_sta(config_node_name);
+
+  digitalWrite(BUILTIN_LED, HIGH);
 }
 
 void loop()
 {
   elapsedMillis elapsed = 0; // count the time the node spent sending data for more accurate sleeping intervals
-  
-  setBuiltinLEDBrightness(LED_ON_BRIGHTNESS_PERCENT);
 
-  if ((WiFi.status() == WL_CONNECTED))
-  {
-    mqttReconnect();
-    mqttClient.loop();
-    
-    readDataAndSend();
-  } else {
-    Serial.println("[WiFi] Connection error");
-  }
-  
-  setBuiltinLEDBrightness(0);
+  withWiFiConnected(config_wifi_ssid, config_wifi_psk, &mqttReadDataAndSend);
+
   delay((config_meas_interval_min * MINS_TO_MILLIS) - elapsed); // delay uses millisecond. We'd like to sleep for minutes
 }
