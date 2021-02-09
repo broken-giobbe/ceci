@@ -50,7 +50,7 @@ void mqttReadDataAndSend()
   float humd = myHumidity.readHumidity();
   float temp = myHumidity.readTemperature();
 
-  snprintf (msg, MQTT_BUFFER_SIZE, "{\"temp\":%.1f,\"rhum\":%.1f}", temp, humd);
+  snprintf(msg, MQTT_BUFFER_SIZE, "{\"temp\":%.1f,\"rhum\":%.1f}", temp, humd);
   Serial.print("[MQTT] publish to: ");
   Serial.print(config_mqtt_topic);
   Serial.print(", payload: ");
@@ -121,9 +121,12 @@ void setup()
   // Initialize MQTT
   mqttClient.setServer(config_mqtt_server, config_mqtt_port);
   
-  // initialize HTU21D temp sensor connected as in the following code
+  // The HTU21D temp sensor is connected as in the following code
   // https://github.com/enjoyneering/HTU21D/blob/master/examples/HTU21D_Demo/HTU21D_Demo.ino
   myHumidity.begin();
+  // Reduce the resolution a bit to get faster measurements
+  // (while sending the measurement, we round out the last decimal anyway)
+  myHumidity.setResolution(USER_REGISTER_RESOLUTION_RH10_TEMP13);
 
   // initialize wifi, putting the ESP into STA(client)-only mode
   initWiFi_sta(config_node_name);
