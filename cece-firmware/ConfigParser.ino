@@ -17,6 +17,7 @@ int parseConfig()
   // If we get here everything went smoothly. Lets's read the config variables
   ini.getValue("node", "name", buffer, INI_BUF_LENGTH, config_node_name, VAL_BUF_LENGTH);
   ini.getValue("node", "meas_interval_min", buffer, INI_BUF_LENGTH, config_meas_interval_min);
+  ini.getValue("node", "temp_offset", buffer, INI_BUF_LENGTH, config_temp_offset);
   
   ini.getValue("wifi", "ssid", buffer, INI_BUF_LENGTH, config_wifi_ssid, VAL_BUF_LENGTH);
   ini.getValue("wifi", "psk", buffer, INI_BUF_LENGTH, config_wifi_psk, VAL_BUF_LENGTH);

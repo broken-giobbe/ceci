@@ -18,6 +18,7 @@
  */
 int  config_meas_interval_min = 1; // Measurement interval in minutes
 char config_node_name[VAL_BUF_LENGTH] = "A Horse with No Name";
+int  config_temp_offset = 0;
 char config_wifi_ssid[VAL_BUF_LENGTH];
 char config_wifi_psk[VAL_BUF_LENGTH];
 char config_mqtt_server[VAL_BUF_LENGTH];

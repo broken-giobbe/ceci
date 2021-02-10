@@ -48,7 +48,7 @@ void mqttReadDataAndSend()
 
   // Take humidity and temperature reading
   float humd = myHumidity.readHumidity();
-  float temp = myHumidity.readTemperature();
+  float temp = myHumidity.readTemperature() - config_temp_offset;
 
   snprintf(msg, MQTT_BUFFER_SIZE, "{\"temp\":%.1f,\"rhum\":%.1f}", temp, humd);
   Serial.print("[MQTT] publish to: ");
