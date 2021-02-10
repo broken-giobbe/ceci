@@ -16,14 +16,14 @@
 /*
  * The following variables are read from SPIFFS during init.
  */
-int  config_meas_interval_min = 1; // Measurement interval in minutes
-char config_node_name[VAL_BUF_LENGTH] = "A Horse with No Name";
-int  config_temp_offset = 0;
-char config_wifi_ssid[VAL_BUF_LENGTH];
-char config_wifi_psk[VAL_BUF_LENGTH];
-char config_mqtt_server[VAL_BUF_LENGTH];
-int  config_mqtt_port = 1883;
-char config_mqtt_topic[VAL_BUF_LENGTH];
+int   config_meas_interval_min = 1; // Measurement interval in minutes
+char  config_node_name[VAL_BUF_LENGTH] = "A Horse with No Name";
+float config_temp_offset = 0.0;
+char  config_wifi_ssid[VAL_BUF_LENGTH];
+char  config_wifi_psk[VAL_BUF_LENGTH];
+char  config_mqtt_server[VAL_BUF_LENGTH];
+int   config_mqtt_port = 1883;
+char  config_mqtt_topic[VAL_BUF_LENGTH];
 
 // Error initializing the SPIFFS partition
 #define E_SPIFFSINIT -1
