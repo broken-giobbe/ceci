@@ -19,3 +19,7 @@ plugin is required.
 
 After flashing the firmware rename data/config-example.ini to data/config.ini
 and edit it to suit your flavour.
+
+## Folder "octave-sim"
+Contains the Octave simulation files to test the various heating algorithms.
+
