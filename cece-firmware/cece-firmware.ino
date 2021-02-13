@@ -13,51 +13,76 @@
 #define MINS_TO_MILLIS (60*1000)
 // Baud rate for the UART port
 #define UART_BAUD_RATE 115200
-// Builtin LED brightness when on
-#define LED_ON_BRIGHTNESS_PERCENT 8
+// Port where the heating control realy is connected
+#define HEATER_PORT D7
 
 // HTU21D temperature & Humidity sensor
 HTU21D myHumidity;
 
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
-#define MQTT_BUFFER_SIZE 50
-
-/* 
- *  The controls for the builtin LED are reversed.
- *  When the pin is set to HIGH the LED is off and vice-versa.
- * This subroutine makes it easy to set the brightness appropriately
- */
-inline void setBuiltinLEDBrightness(int percent) __attribute__((always_inline));
-void setBuiltinLEDBrightness(int percent)
-{
-  int pwm_val = 1023 - (1023*percent)/100;
-  analogWrite(BUILTIN_LED, pwm_val);
-}
+#define MQTT_BUFFER_SIZE 50 // buffer size for MQTT operations
 
 /**
- * Read sensor data and send it to the broker using MQTT.
+ * Publish node data using MQTT.
+ * Basically we publish the sensor readings and the thermostat status (if available)
  * Make also sure that we call the loop() function and reconnect to the broker if needed
  */
-void mqttReadDataAndSend()
+void mqttPublishData()
 {
   char msg[MQTT_BUFFER_SIZE];
 
   mqttReconnect();
   mqttClient.loop();
 
-  // Take humidity and temperature reading
+  // Take humidity and temperature readings.
+  // Fail silently if the data is wrong
   float humd = myHumidity.readHumidity();
   float temp = myHumidity.readTemperature() - config_temp_offset;
+  Serial.print("[Sensors] Temperature: ");
+  Serial.print(temp);
+  Serial.print(" humidity: ") ;
+  Serial.println(humd);
+  
+  if ((temp != ERROR_BAD_CRC) && (temp != ERROR_I2C_TIMEOUT) &&
+      (humd != ERROR_BAD_CRC) && (humd != ERROR_I2C_TIMEOUT))
+  {
+    snprintf(msg, MQTT_BUFFER_SIZE, "{\"temp\":%.1f,\"rhum\":%.1f}", temp, humd);
+    
+    Serial.print("[MQTT] publish to: ");
+    Serial.println(config_sensor_topic);
+    mqttClient.publish(config_sensor_topic, msg, 1);
+  }
 
-  snprintf(msg, MQTT_BUFFER_SIZE, "{\"temp\":%.1f,\"rhum\":%.1f}", temp, humd);
-  Serial.print("[MQTT] publish to: ");
-  Serial.print(config_mqtt_topic);
-  Serial.print(", payload: ");
-  Serial.println(msg);
-                             
-  mqttClient.publish(config_mqtt_topic, msg, 1);
+  // If this node can control some heating system then tell the world so
+  if (config_heater_status != -1)
+  {
+    snprintf(msg, MQTT_BUFFER_SIZE, "{\"heater\":%i,\"hysteresis\":%.1f,\"anticipator\":%.1f}",
+      config_heater_status, config_tstat_hysteresis, config_tstat_anticipator);
+
+    Serial.print("[MQTT] publish to: ");
+    Serial.println(config_tstat_status_topic);
+    mqttClient.publish(config_tstat_status_topic, msg);
+  }
 }
+
+/**
+ * MQTT callback receiving data about the topics we have subscribed to.
+ * Parameters:
+ *   topic const char[] - the topic the message arrived on
+ *   payload byte[] - the message payload
+ *   length unsigned int - the length of the message payload
+ */
+void mqttCallback(const char* topic, byte* payload, unsigned int length)
+{
+  char* payloadStr = (char*) malloc(length + 1); // for null terminator char
+  snprintf(payloadStr, length+1, "%s", payload);
+
+  Serial.print("[MQTT] got: ");
+  Serial.print(topic);
+  Serial.print(" ");
+  Serial.println(payloadStr);
+} 
 
 /**
  * MQTT utility function to (re)connect to the broker
@@ -70,8 +95,13 @@ void mqttReconnect()
 
     if (mqttClient.connect(config_node_name)) {
       Serial.println(" Success.");
-      // (re)subscribe to the required topics
-      //client.subscribe("inTopic");
+      // If this node controls the heating system (re)subscribe to the required topics
+      if (config_heater_status != -1)
+      {
+        mqttClient.subscribe(config_tstat_temp_topic);
+        mqttClient.subscribe(config_tstat_mode_topic);
+        mqttClient.subscribe(config_tstat_sensor_topic);
+      }
     } else {
       Serial.println(" Fail: rc=");
       Serial.println(mqttClient.state());
@@ -88,8 +118,8 @@ void setup()
   WiFiTurnOff();
 
   // initialize onboard LED as output and turn it on
-  pinMode(BUILTIN_LED, OUTPUT);
-  digitalWrite(BUILTIN_LED, LOW);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
 
   // initialize serial
   Serial.begin(UART_BAUD_RATE);
@@ -118,8 +148,16 @@ void setup()
       while (1) yield();
   }
 
+  // Configure the heater relay output if needed
+  if (config_heater_status != -1)
+  {
+    pinMode(HEATER_PORT, OUTPUT);
+    digitalWrite(HEATER_PORT, config_heater_status);
+  }
+
   // Initialize MQTT
   mqttClient.setServer(config_mqtt_server, config_mqtt_port);
+  mqttClient.setCallback(mqttCallback);
   
   // The HTU21D temp sensor is connected as in the following code
   // https://github.com/enjoyneering/HTU21D/blob/master/examples/HTU21D_Demo/HTU21D_Demo.ino
@@ -131,14 +169,14 @@ void setup()
   // initialize wifi, putting the ESP into STA(client)-only mode
   initWiFi_sta(config_node_name);
 
-  digitalWrite(BUILTIN_LED, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);
 }
 
 void loop()
 {
   elapsedMillis elapsed = 0; // count the time the node spent sending data for more accurate sleeping intervals
 
-  withWiFiConnected(config_wifi_ssid, config_wifi_psk, &mqttReadDataAndSend);
+  withWiFiConnected(config_wifi_ssid, config_wifi_psk, &mqttPublishData);
 
   delay((config_meas_interval_min * MINS_TO_MILLIS) - elapsed); // delay uses millisecond. We'd like to sleep for minutes
 }

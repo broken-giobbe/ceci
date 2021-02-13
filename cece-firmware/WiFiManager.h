@@ -9,8 +9,10 @@
 // Use this LED to tell the user we're busy 
 #define WIFI_LED_PIN LED_BUILTIN
 // This is the brightness for such LED.
-// NOTE: if using BUILTIN_LED the values are reversed! 1023 = off, 0 = full brightness
+// NOTE: if using LED_BUILTIN the values are reversed! 1023 = off, 0 = full brightness
 #define WIFI_LED_BRIGHTNESS 940
+#define WIFI_LED_ON_STATE LOW
+#define WIFI_LED_OFF_STATE HIGH
 
 /**
  * Initialize the WiFi radio, turn it on, put it in station mode and set the hostname.

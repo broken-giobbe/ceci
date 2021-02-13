@@ -19,11 +19,21 @@
 int   config_meas_interval_min = 1; // Measurement interval in minutes
 char  config_node_name[VAL_BUF_LENGTH] = "A Horse with No Name";
 float config_temp_offset = 0.0;
+char  config_sensor_topic[VAL_BUF_LENGTH];
+
+int   config_heater_status = -1; // -1 = No heater, 0 = off, 1 = on
+float config_tstat_hysteresis;
+float config_tstat_anticipator;
+char  config_tstat_status_topic[VAL_BUF_LENGTH];
+char  config_tstat_temp_topic[VAL_BUF_LENGTH];
+char  config_tstat_mode_topic[VAL_BUF_LENGTH];
+char  config_tstat_sensor_topic[VAL_BUF_LENGTH];
+
 char  config_wifi_ssid[VAL_BUF_LENGTH];
 char  config_wifi_psk[VAL_BUF_LENGTH];
+
 char  config_mqtt_server[VAL_BUF_LENGTH];
 int   config_mqtt_port = 1883;
-char  config_mqtt_topic[VAL_BUF_LENGTH];
 
 // Error initializing the SPIFFS partition
 #define E_SPIFFSINIT -1
@@ -38,6 +48,5 @@ char  config_mqtt_topic[VAL_BUF_LENGTH];
  * Returns 0 on success or one of the errors above on failure
  */
 int parseConfig();
-
 
 #endif

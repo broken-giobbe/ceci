@@ -23,12 +23,12 @@ void withWiFiConnected(char* ssid, char* pswd, void (*todo)())
 
     analogWrite(WIFI_LED_PIN, WIFI_LED_BRIGHTNESS);
     (*todo)();
-    digitalWrite(WIFI_LED_PIN, 1);
+    digitalWrite(WIFI_LED_PIN, WIFI_LED_OFF_STATE);
 }
 
 void WiFiConnect(char* ssid, char* psk)
 {
-    digitalWrite(WIFI_LED_PIN, 0);
+    digitalWrite(WIFI_LED_PIN, WIFI_LED_ON_STATE);
     Serial.print("[WiFi] Connecting to ");
     Serial.print(ssid);
     WiFi.begin(ssid, psk);
@@ -43,7 +43,7 @@ void WiFiConnect(char* ssid, char* psk)
     Serial.println(" dBm");
     Serial.print("[WiFi] IP address: ");
     Serial.println(WiFi.localIP());
-    digitalWrite(WIFI_LED_PIN, 1);
+    digitalWrite(WIFI_LED_PIN, WIFI_LED_OFF_STATE);
 }
 
 void WiFiTurnOff()
