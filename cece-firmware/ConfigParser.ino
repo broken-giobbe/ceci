@@ -37,9 +37,9 @@ int parseConfig()
   {
     ini.getValue("MQTT", "tstat_topic", buffer, INI_BUF_LENGTH, str_buf, VAL_BUF_LENGTH);
     snprintf(config_tstat_status_topic, VAL_BUF_LENGTH, "%s/%s/status", str_buf, config_node_name);
-    snprintf(config_tstat_temp_topic, VAL_BUF_LENGTH, "%s/%s/target_temp", str_buf, config_node_name);
+    snprintf(config_tstat_target_temp_topic, VAL_BUF_LENGTH, "%s/%s/target_temp", str_buf, config_node_name);
     snprintf(config_tstat_mode_topic, VAL_BUF_LENGTH, "%s/%s/mode", str_buf, config_node_name);
-    snprintf(config_tstat_sensor_topic, VAL_BUF_LENGTH, "%s/%s/sensor_topic", str_buf, config_node_name);
+    snprintf(config_tstat_actual_temp_topic, VAL_BUF_LENGTH, "%s/%s/actual_temp", str_buf, config_node_name);
   }
   return 0;
 }

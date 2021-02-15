@@ -2,19 +2,21 @@
  * TODO: Describe me 
 **/
 #include <PubSubClient.h>
-#include <elapsedMillis.h>
 #include <Wire.h>
 #include <SparkFunHTU21D.h>
 
 #include "ConfigParser.h"
 #include "WiFiManager.h"
 
-// Constant used to convert minutes to milliseconds
-#define MINS_TO_MILLIS (60*1000)
+// Constant used to convert minutes to stuff
+#define MINS_TO_SEC(x) (x*60)
+#define MINS_TO_MILLIS(x) (x*60*1000)
 // Baud rate for the UART port
 #define UART_BAUD_RATE 115200
 // Port where the heating control realy is connected
 #define HEATER_PORT D7
+// Rate in milliseconds at which the MQTT function loop() is called
+#define MQTT_LOOP_RATE 2000
 
 // HTU21D temperature & Humidity sensor
 HTU21D myHumidity;
@@ -22,6 +24,29 @@ HTU21D myHumidity;
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
 #define MQTT_BUFFER_SIZE 50 // buffer size for MQTT operations
+
+// next time mqttPublish shall run
+time_t mqttPublish_next_millis;
+// next time mqtt loop shall run
+time_t mqttLoop_next_millis;
+
+// The target temperature for the thermostat mode
+float target_temp = 0;
+// the mode the thermostat is in: A - auto, M - manual
+char tstat_mode = 'M';
+
+/*
+ * Compute a new value for the thermostat output
+ */
+bool tstat_computeOutput(float t_temp, float a_temp)
+{
+  if (tstat_mode != 'A')
+    return config_tstat_output;
+ 
+  bool newOutput = (t_temp - a_temp) > 0;
+  
+  return newOutput;
+}
 
 /**
  * Publish node data using MQTT.
@@ -33,7 +58,6 @@ void mqttPublishData()
   char msg[MQTT_BUFFER_SIZE];
 
   mqttReconnect();
-  mqttClient.loop();
 
   // Take humidity and temperature readings.
   // Fail silently if the data is wrong
@@ -57,8 +81,8 @@ void mqttPublishData()
   // If this node can control some heating system then tell the world so
   if (config_heater_status != -1)
   {
-    snprintf(msg, MQTT_BUFFER_SIZE, "{\"heater\":%i,\"hysteresis\":%.1f,\"anticipator\":%.1f}",
-      config_heater_status, config_tstat_hysteresis, config_tstat_anticipator);
+    snprintf(msg, MQTT_BUFFER_SIZE, "{\"heater\":%i%c, \"target_temp\":%.1f}",
+      config_heater_status, tstat_mode, target_temp);
 
     Serial.print("[MQTT] publish to: ");
     Serial.println(config_tstat_status_topic);
@@ -78,10 +102,38 @@ void mqttCallback(const char* topic, byte* payload, unsigned int length)
   char* payloadStr = (char*) malloc(length + 1); // for null terminator char
   snprintf(payloadStr, length+1, "%s", payload);
 
-  Serial.print("[MQTT] got: ");
+  // keep only the last part of the topic, the rest does not give us any info
+  topic = strrchr(topic, '/') + 1;
+  
+  Serial.print("[MQTT] Received ");
   Serial.print(topic);
-  Serial.print(" ");
+  Serial.print(" -> ");
   Serial.println(payloadStr);
+
+  switch (topic[0]) {
+    case 't': // target_temp
+      target_temp = strtof(payloadStr, NULL);
+      break;
+    
+    case 'm': // mode
+      if(payload[0] == 'A') // auto mode
+      {
+        tstat_mode = 'A';
+      } else { // manual mode
+        config_heater_status = (payload[0] == '1');
+        tstat_mode = 'M';
+      }
+      break;
+    
+    case 'a': // actual_temp
+      config_heater_status = tstat_computeOutput(target_temp, strtof(payloadStr, NULL));
+      break;
+    
+    default:
+      ; /* do nothing */
+  }
+  
+  free(payloadStr);
 } 
 
 /**
@@ -98,9 +150,9 @@ void mqttReconnect()
       // If this node controls the heating system (re)subscribe to the required topics
       if (config_heater_status != -1)
       {
-        mqttClient.subscribe(config_tstat_temp_topic);
+        mqttClient.subscribe(config_tstat_target_temp_topic);
         mqttClient.subscribe(config_tstat_mode_topic);
-        mqttClient.subscribe(config_tstat_sensor_topic);
+        mqttClient.subscribe(config_tstat_actual_temp_topic);
       }
     } else {
       Serial.println(" Fail: rc=");
@@ -158,6 +210,8 @@ void setup()
   // Initialize MQTT
   mqttClient.setServer(config_mqtt_server, config_mqtt_port);
   mqttClient.setCallback(mqttCallback);
+  // We wake up once in a meas_interval. Inform the broker
+  mqttClient.setKeepAlive(MINS_TO_SEC(config_meas_interval_min) + 10);
   
   // The HTU21D temp sensor is connected as in the following code
   // https://github.com/enjoyneering/HTU21D/blob/master/examples/HTU21D_Demo/HTU21D_Demo.ino
@@ -174,9 +228,21 @@ void setup()
 
 void loop()
 {
-  elapsedMillis elapsed = 0; // count the time the node spent sending data for more accurate sleeping intervals
+  time_t cur_millis = millis();
 
-  withWiFiConnected(config_wifi_ssid, config_wifi_psk, &mqttPublishData);
-
-  delay((config_meas_interval_min * MINS_TO_MILLIS) - elapsed); // delay uses millisecond. We'd like to sleep for minutes
+  if (cur_millis >= mqttPublish_next_millis)
+  {
+    withWiFiConnected(config_wifi_ssid, config_wifi_psk, &mqttPublishData);
+    mqttPublish_next_millis = cur_millis + MINS_TO_MILLIS(config_meas_interval_min);
+  }
+  else if (cur_millis >= mqttLoop_next_millis)
+  {
+    mqttClient.loop();
+    mqttLoop_next_millis = cur_millis + MQTT_LOOP_RATE;
+  }
+  else
+    delay(min(mqttLoop_next_millis, mqttPublish_next_millis) - millis());
+  
+  if (config_heater_status != -1)
+    digitalWrite(HEATER_PORT, config_heater_status);
 }

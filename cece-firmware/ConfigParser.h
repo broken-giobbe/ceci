@@ -16,7 +16,7 @@
 /*
  * The following variables are read from SPIFFS during init.
  */
-int   config_meas_interval_min = 1; // Measurement interval in minutes
+uint16_t config_meas_interval_min = 1; // Measurement interval in minutes (max 65535' = 18.2h)
 char  config_node_name[VAL_BUF_LENGTH] = "A Horse with No Name";
 float config_temp_offset = 0.0;
 char  config_sensor_topic[VAL_BUF_LENGTH];
@@ -25,9 +25,9 @@ int   config_heater_status = -1; // -1 = No heater, 0 = off, 1 = on
 float config_tstat_hysteresis;
 float config_tstat_anticipator;
 char  config_tstat_status_topic[VAL_BUF_LENGTH];
-char  config_tstat_temp_topic[VAL_BUF_LENGTH];
+char  config_tstat_target_temp_topic[VAL_BUF_LENGTH];
 char  config_tstat_mode_topic[VAL_BUF_LENGTH];
-char  config_tstat_sensor_topic[VAL_BUF_LENGTH];
+char  config_tstat_actual_temp_topic[VAL_BUF_LENGTH];
 
 char  config_wifi_ssid[VAL_BUF_LENGTH];
 char  config_wifi_psk[VAL_BUF_LENGTH];
