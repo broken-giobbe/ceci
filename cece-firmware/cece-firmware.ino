@@ -26,12 +26,14 @@ PubSubClient mqttClient(wifiClient);
 #define MQTT_BUFFER_SIZE 50 // buffer size for MQTT operations
 
 // next time mqttPublish shall run
-time_t mqttPublish_next_millis;
+time_t mqttPublish_next_millis = 0;
 // next time mqtt loop shall run
-time_t mqttLoop_next_millis;
+time_t mqttLoop_next_millis = 0;
 
 // The target temperature for the thermostat mode
 float target_temp = 0;
+// The last temperature received from mqtt
+float last_temp = 0;
 // the mode the thermostat is in: A - auto, M - manual
 char tstat_mode = 'M';
 
@@ -41,7 +43,7 @@ char tstat_mode = 'M';
 bool tstat_computeOutput(float t_temp, float a_temp)
 {
   if (tstat_mode != 'A')
-    return config_tstat_output;
+    return config_heater_status;
  
   bool newOutput = (t_temp - a_temp) > 0;
   
@@ -51,13 +53,10 @@ bool tstat_computeOutput(float t_temp, float a_temp)
 /**
  * Publish node data using MQTT.
  * Basically we publish the sensor readings and the thermostat status (if available)
- * Make also sure that we call the loop() function and reconnect to the broker if needed
  */
 void mqttPublishData()
 {
   char msg[MQTT_BUFFER_SIZE];
-
-  mqttReconnect();
 
   // Take humidity and temperature readings.
   // Fail silently if the data is wrong
@@ -126,20 +125,24 @@ void mqttCallback(const char* topic, byte* payload, unsigned int length)
       break;
     
     case 'a': // actual_temp
-      config_heater_status = tstat_computeOutput(target_temp, strtof(payloadStr, NULL));
+      last_temp = strtof(payloadStr, NULL);
       break;
     
     default:
       ; /* do nothing */
   }
   
+  config_heater_status = tstat_computeOutput(target_temp, last_temp);
+  digitalWrite(HEATER_PORT, config_heater_status);
+
   free(payloadStr);
 } 
 
 /**
- * MQTT utility function to (re)connect to the broker
+ * MQTT utility function to (re)connect to the broker and to perform all the housekeeping stuff
+ * for MQTT to work correctly
  */
-void mqttReconnect()
+void mqttKeepalive()
 {
   while (!mqttClient.connected())
   {
@@ -162,6 +165,8 @@ void mqttReconnect()
       delay(5000);
     }
   }
+  
+  mqttClient.loop();
 }
 
 void setup()
@@ -210,8 +215,8 @@ void setup()
   // Initialize MQTT
   mqttClient.setServer(config_mqtt_server, config_mqtt_port);
   mqttClient.setCallback(mqttCallback);
-  // We wake up once in a meas_interval. Inform the broker
-  mqttClient.setKeepAlive(MINS_TO_SEC(config_meas_interval_min) + 10);
+  // Use config_meas_interval as keepalive time for MQTT connection
+  mqttClient.setKeepAlive(MINS_TO_SEC(config_meas_interval_min));
   
   // The HTU21D temp sensor is connected as in the following code
   // https://github.com/enjoyneering/HTU21D/blob/master/examples/HTU21D_Demo/HTU21D_Demo.ino
@@ -229,20 +234,20 @@ void setup()
 void loop()
 {
   time_t cur_millis = millis();
-
+  
+  if (cur_millis >= mqttLoop_next_millis)
+  {
+    withWiFiConnected(config_wifi_ssid, config_wifi_psk, &mqttKeepalive);
+    mqttLoop_next_millis = cur_millis + MQTT_LOOP_RATE;
+    return;
+  }
+  
   if (cur_millis >= mqttPublish_next_millis)
   {
     withWiFiConnected(config_wifi_ssid, config_wifi_psk, &mqttPublishData);
     mqttPublish_next_millis = cur_millis + MINS_TO_MILLIS(config_meas_interval_min);
+    return;
   }
-  else if (cur_millis >= mqttLoop_next_millis)
-  {
-    mqttClient.loop();
-    mqttLoop_next_millis = cur_millis + MQTT_LOOP_RATE;
-  }
-  else
-    delay(min(mqttLoop_next_millis, mqttPublish_next_millis) - millis());
   
-  if (config_heater_status != -1)
-    digitalWrite(HEATER_PORT, config_heater_status);
+  delay(min(mqttLoop_next_millis, mqttPublish_next_millis) - millis());
 }
