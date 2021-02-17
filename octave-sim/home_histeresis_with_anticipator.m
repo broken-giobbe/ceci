@@ -33,9 +33,7 @@ function ht_en = run_controller(T_target, T_home, t)
   hysteresis = 0.5;
   anticipator_rate = 0.2;
   
-  ht_en = 1;
-  
-  if (T_home <= final_temp)
+  if (T_home < final_temp)
     ht_en = 1;
     anticipator_temp += anticipator_rate;
     final_temp = T_target + hysteresis - anticipator_temp;

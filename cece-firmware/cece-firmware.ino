@@ -39,15 +39,29 @@ char tstat_mode = 'M';
 
 /*
  * Compute a new value for the thermostat output
+ * t_temp -> target temperature to reach
+ * a_temp -> actual temperature
  */
 bool tstat_computeOutput(float t_temp, float a_temp)
 {
   if (tstat_mode != 'A')
     return config_heater_status;
- 
-  bool newOutput = (t_temp - a_temp) > 0;
   
-  return newOutput;
+  // I know it's ugly but the thermostat has to keep some state
+  static float final_temp = t_temp;
+  static float anticipator_temp = 0;
+
+  if (a_temp < final_temp) // actual temp is lower than expected -> heat up
+  {
+    anticipator_temp += config_tstat_anticipator;
+    final_temp = t_temp + config_tstat_hysteresis - anticipator_temp;
+    return true;
+  }
+  // if we get here there's no need to turn on the heating system
+  anticipator_temp -= config_tstat_anticipator;
+  anticipator_temp = fmax(0, anticipator_temp);
+  final_temp = t_temp - config_tstat_hysteresis - anticipator_temp;
+  return false;
 }
 
 /**
@@ -131,9 +145,6 @@ void mqttCallback(const char* topic, byte* payload, unsigned int length)
     default:
       ; /* do nothing */
   }
-  
-  config_heater_status = tstat_computeOutput(target_temp, last_temp);
-  digitalWrite(HEATER_PORT, config_heater_status);
 
   free(payloadStr);
 } 
@@ -238,6 +249,12 @@ void loop()
   if (cur_millis >= mqttLoop_next_millis)
   {
     withWiFiConnected(config_wifi_ssid, config_wifi_psk, &mqttKeepalive);
+
+    // Since every time mqtt.loop() is run the heating parameters can change,
+    // recompute the heater status output
+    config_heater_status = tstat_computeOutput(target_temp, last_temp);
+    digitalWrite(HEATER_PORT, config_heater_status);
+    
     mqttLoop_next_millis = cur_millis + MQTT_LOOP_RATE;
     return;
   }

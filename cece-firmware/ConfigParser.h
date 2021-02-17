@@ -22,8 +22,8 @@ float config_temp_offset = 0.0;
 char  config_sensor_topic[VAL_BUF_LENGTH];
 
 int   config_heater_status = -1; // -1 = No heater, 0 = off, 1 = on
-float config_tstat_hysteresis;
-float config_tstat_anticipator;
+float config_tstat_hysteresis = 0.5;
+float config_tstat_anticipator = 0.005;
 char  config_tstat_status_topic[VAL_BUF_LENGTH];
 char  config_tstat_target_temp_topic[VAL_BUF_LENGTH];
 char  config_tstat_mode_topic[VAL_BUF_LENGTH];
