@@ -1,6 +1,6 @@
 #include "WiFiManager.h"
 
-void initWiFi_sta(String hostname = WiFi.macAddress())
+void initWiFi_sta(String hName = WiFi.macAddress())
 {
     /*
      * Disable the WiFi persistence.
@@ -8,12 +8,13 @@ void initWiFi_sta(String hostname = WiFi.macAddress())
      * See:
      * https://www.bakke.online/index.php/2017/05/22/reducing-wifi-power-consumption-on-esp8266-part-3/
      */
-    WiFi.persistent(false);
-    WiFi.hostname(config_node_name);    
+    WiFi.persistent(false);   
     // turn on the radio
     WiFi.forceSleepWake();
     WiFi.mode(WIFI_STA);
     yield();
+    // set hostname
+    WiFi.hostname(hName); 
 }
 
 void withWiFiConnected(char* ssid, char* pswd, void (*todo)())
