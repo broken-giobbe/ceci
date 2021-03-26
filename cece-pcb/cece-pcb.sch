@@ -872,4 +872,15 @@ F 3 "~" H 1250 4600 50  0001 C CNN
 	1    1250 4600
 	0    1    1    0   
 $EndComp
+$Comp
+L pol:a_black_cat EA101
+U 1 1 605E1AB3
+P 7450 6850
+F 0 "EA101" H 8090 6865 50  0000 L CNN
+F 1 "a_black_cat" H 8090 6774 50  0000 L CNN
+F 2 "pol:a_black_cat" H 7450 6850 50  0001 C CNN
+F 3 "" H 7450 6850 50  0001 C CNN
+	1    7450 6850
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC
