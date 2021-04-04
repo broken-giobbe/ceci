@@ -1,14 +1,14 @@
 /**
  * TODO: Describe me 
 **/
+#include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <Wire.h>
 #include <SparkFunHTU21D.h>
 
 #include "ConfigParser.h"
-#include "WiFiManager.h"
 
-// Constant used to convert minutes to stuff
+// macros used to convert minutes to other stuff
 #define MINS_TO_SEC(x) (x*60)
 #define MINS_TO_MILLIS(x) (x*60*1000)
 // Baud rate for the UART port
@@ -36,6 +36,107 @@ float target_temp = 0;
 float last_temp = 0;
 // the mode the thermostat is in: A - auto, M - manual
 char tstat_mode = 'M';
+
+void setup()
+{
+  // enable WiFi and light sleep mode
+  WiFi.mode(WIFI_STA);
+  wifi_set_sleep_type(LIGHT_SLEEP_T);
+    
+  // initialize onboard LED as output and turn it on
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
+
+  // initialize serial
+  Serial.begin(UART_BAUD_RATE);
+  Serial.println("");
+
+  // read config.ini file from SPIFFS and initialize variables
+  int retval = parseConfig();
+  switch (retval) {
+    case 0:
+      Serial.println("[Config] OK.");
+      break;
+    case E_SPIFFSINIT:
+      Serial.println("[Config] Invalid config file found. Aborting setup().");
+      while (1) yield(); // avoid triggering the WDT: https://sigmdel.ca/michel/program/esp8266/arduino/watchdogs_en.html
+      break;
+    case E_NOCONF:
+      Serial.println("[Config] No config file found. Aborting setup().");
+      while (1) yield();
+      break;
+    case E_INVCONF:
+      Serial.println("[Config] Invalid config file found. Aborting setup().");
+      while (1) yield();
+      break;
+    default:
+      Serial.println("[Config] WTF!? Something bad happened. Aborting setup().");
+      while (1) yield();
+  }
+
+  // Configure the heater relay output if needed
+  if (config_heater_status != -1)
+  {
+    pinMode(HEATER_PORT, OUTPUT);
+    digitalWrite(HEATER_PORT, config_heater_status);
+  }
+
+  // Initialize MQTT
+  mqttClient.setServer(config_mqtt_server, config_mqtt_port);
+  mqttClient.setCallback(mqttCallback);
+  // Use config_meas_interval as keepalive time for MQTT connection
+  mqttClient.setKeepAlive(MINS_TO_SEC(config_meas_interval_min));
+  
+  // The HTU21D temp sensor is connected as in the following code
+  // https://github.com/enjoyneering/HTU21D/blob/master/examples/HTU21D_Demo/HTU21D_Demo.ino
+  myHumidity.begin();
+  // Reduce the resolution a bit to get faster measurements
+  // (while sending the measurement, we round out the last decimal anyway)
+  myHumidity.setResolution(USER_REGISTER_RESOLUTION_RH10_TEMP13);
+
+  // All done. Let's connect to the WiFi network
+  Serial.print("[WiFi] Connecting to ");
+  Serial.print(config_wifi_ssid);
+  WiFi.begin(config_wifi_ssid, config_wifi_psk);
+  while (WiFi.status() != WL_CONNECTED)
+  {
+      digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN)); // let's have some blinking action!
+      delay(500);
+      Serial.print(".");
+  }
+  Serial.print("\n[WiFi] Connected. RSSI = ");
+  Serial.print(WiFi.RSSI());
+  Serial.println(" dBm");
+  
+  digitalWrite(LED_BUILTIN, HIGH);
+}
+
+void loop()
+{
+  time_t cur_millis = millis();
+  
+  if (cur_millis >= mqttLoop_next_millis)
+  {
+    mqttKeepalive();
+
+    // Since every time mqtt.loop() is run the heating parameters can change,
+    // recompute the heater status output
+    config_heater_status = tstat_computeOutput(target_temp, last_temp);
+    digitalWrite(HEATER_PORT, config_heater_status);
+    
+    mqttLoop_next_millis = cur_millis + MQTT_LOOP_RATE;
+    return;
+  }
+  
+  if (cur_millis >= mqttPublish_next_millis)
+  {
+    mqttPublishData();
+    mqttPublish_next_millis = cur_millis + MINS_TO_MILLIS(config_meas_interval_min);
+    return;
+  }
+  
+  delay(min(mqttLoop_next_millis, mqttPublish_next_millis) - millis());
+}
 
 /*
  * Compute a new value for the thermostat output
@@ -178,93 +279,4 @@ void mqttKeepalive()
   }
   
   mqttClient.loop();
-}
-
-void setup()
-{
-  // Shutdown the WiFi radio until everything has been set up properly
-  WiFiTurnOff();
-
-  // initialize onboard LED as output and turn it on
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
-
-  // initialize serial
-  Serial.begin(UART_BAUD_RATE);
-  Serial.println("");
-
-  // read config.ini file from SPIFFS and initialize variables
-  int retval = parseConfig();
-  switch (retval) {
-    case 0:
-      Serial.println("[Config] OK.");
-      break;
-    case E_SPIFFSINIT:
-      Serial.println("[Config] Invalid config file found. Aborting setup().");
-      while (1) yield(); // avoid triggering the WDT: https://sigmdel.ca/michel/program/esp8266/arduino/watchdogs_en.html
-      break;
-    case E_NOCONF:
-      Serial.println("[Config] No config file found. Aborting setup().");
-      while (1) yield();
-      break;
-    case E_INVCONF:
-      Serial.println("[Config] Invalid config file found. Aborting setup().");
-      while (1) yield();
-      break;
-    default:
-      Serial.println("[Config] WTF!? Something bad happened. Aborting setup().");
-      while (1) yield();
-  }
-
-  // Configure the heater relay output if needed
-  if (config_heater_status != -1)
-  {
-    pinMode(HEATER_PORT, OUTPUT);
-    digitalWrite(HEATER_PORT, config_heater_status);
-  }
-
-  // Initialize MQTT
-  mqttClient.setServer(config_mqtt_server, config_mqtt_port);
-  mqttClient.setCallback(mqttCallback);
-  // Use config_meas_interval as keepalive time for MQTT connection
-  mqttClient.setKeepAlive(MINS_TO_SEC(config_meas_interval_min));
-  
-  // The HTU21D temp sensor is connected as in the following code
-  // https://github.com/enjoyneering/HTU21D/blob/master/examples/HTU21D_Demo/HTU21D_Demo.ino
-  myHumidity.begin();
-  // Reduce the resolution a bit to get faster measurements
-  // (while sending the measurement, we round out the last decimal anyway)
-  myHumidity.setResolution(USER_REGISTER_RESOLUTION_RH10_TEMP13);
-
-  // initialize wifi, putting the ESP into STA(client)-only mode
-  initWiFi_sta(config_node_name);
-
-  digitalWrite(LED_BUILTIN, HIGH);
-}
-
-void loop()
-{
-  time_t cur_millis = millis();
-  
-  if (cur_millis >= mqttLoop_next_millis)
-  {
-    withWiFiConnected(config_wifi_ssid, config_wifi_psk, &mqttKeepalive);
-
-    // Since every time mqtt.loop() is run the heating parameters can change,
-    // recompute the heater status output
-    config_heater_status = tstat_computeOutput(target_temp, last_temp);
-    digitalWrite(HEATER_PORT, config_heater_status);
-    
-    mqttLoop_next_millis = cur_millis + MQTT_LOOP_RATE;
-    return;
-  }
-  
-  if (cur_millis >= mqttPublish_next_millis)
-  {
-    withWiFiConnected(config_wifi_ssid, config_wifi_psk, &mqttPublishData);
-    mqttPublish_next_millis = cur_millis + MINS_TO_MILLIS(config_meas_interval_min);
-    return;
-  }
-  
-  delay(min(mqttLoop_next_millis, mqttPublish_next_millis) - millis());
 }
