@@ -1,5 +1,5 @@
 /**
- * TODO: Describe me 
+ * TODO: Describe me
 **/
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
@@ -15,8 +15,10 @@
 #define UART_BAUD_RATE 115200
 // Port where the heating control realy is connected
 #define HEATER_PORT D7
+// Minumim time the heater must stay on (avoids wasting energy)
+#define MIN_HEATER_TIME MINS_TO_MILLIS(1)
 // Rate in milliseconds at which the MQTT function loop() is called
-#define MQTT_LOOP_RATE 2000
+#define MQTT_LOOP_RATE 1000
 
 // HTU21D temperature & Humidity sensor
 HTU21D myHumidity;
@@ -25,24 +27,21 @@ WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
 #define MQTT_BUFFER_SIZE 50 // buffer size for MQTT operations
 
-// next time mqttPublish shall run
-time_t mqttPublish_next_millis = 0;
-// next time mqtt loop shall run
-time_t mqttLoop_next_millis = 0;
-
 // The target temperature for the thermostat mode
 float target_temp = 0;
 // The last temperature received from mqtt
 float last_temp = 0;
 // the mode the thermostat is in: A - auto, M - manual
 char tstat_mode = 'M';
+// the last time the relay was on
+time_t last_on_time = 0;
 
 void setup()
 {
   // enable WiFi and light sleep mode
   WiFi.mode(WIFI_STA);
   wifi_set_sleep_type(LIGHT_SLEEP_T);
-    
+
   // initialize onboard LED as output and turn it on
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
@@ -86,7 +85,7 @@ void setup()
   mqttClient.setCallback(mqttCallback);
   // Use config_meas_interval as keepalive time for MQTT connection
   mqttClient.setKeepAlive(MINS_TO_SEC(config_meas_interval_min));
-  
+
   // The HTU21D temp sensor is connected as in the following code
   // https://github.com/enjoyneering/HTU21D/blob/master/examples/HTU21D_Demo/HTU21D_Demo.ino
   myHumidity.begin();
@@ -97,7 +96,7 @@ void setup()
   // Setup the various tasks
   sched_put_task(&mqttKeepalive, MQTT_LOOP_RATE);
   sched_put_task(&mqttPublishData, MINS_TO_MILLIS(config_meas_interval_min));
-  
+
   // All done. Let's connect to the WiFi network
   Serial.print("[WiFi] Connecting to ");
   Serial.print(config_wifi_ssid);
@@ -110,7 +109,7 @@ void setup()
   Serial.print("\n[WiFi] Connected. RSSI = ");
   Serial.print(WiFi.RSSI());
   Serial.println(" dBm");
-  
+
   digitalWrite(LED_BUILTIN, HIGH);
 }
 
@@ -130,12 +129,12 @@ void mqttPublishData()
   Serial.print(temp);
   Serial.print(" humidity: ") ;
   Serial.println(humd);
-  
+
   if ((temp != ERROR_BAD_CRC) && (temp != ERROR_I2C_TIMEOUT) &&
       (humd != ERROR_BAD_CRC) && (humd != ERROR_I2C_TIMEOUT))
   {
     snprintf(msg, MQTT_BUFFER_SIZE, "{\"temp\":%.1f,\"rhum\":%.1f}", temp, humd);
-    
+
     Serial.print("[MQTT] publish to: ");
     Serial.println(config_sensor_topic);
     mqttClient.publish(config_sensor_topic, msg, 1);
@@ -180,9 +179,9 @@ void mqttKeepalive()
       delay(5000);
     }
   }
-  
+
   mqttClient.loop();
-  
+
   // Since every time mqtt.loop() is run the heating parameters can change,
   // recompute the heater status output
   config_heater_status = tstat_computeOutput(target_temp, last_temp);
@@ -203,7 +202,7 @@ void mqttCallback(const char* topic, byte* payload, unsigned int length)
 
   // keep only the last part of the topic, the rest does not give us any info
   topic = strrchr(topic, '/') + 1;
-  
+
   Serial.print("[MQTT] Received ");
   Serial.print(topic);
   Serial.print(" -> ");
@@ -213,7 +212,7 @@ void mqttCallback(const char* topic, byte* payload, unsigned int length)
     case 't': // target_temp
       target_temp = strtof(payloadStr, NULL);
       break;
-    
+
     case 'm': // mode
       if(payload[0] == 'A') // auto mode
       {
@@ -223,11 +222,11 @@ void mqttCallback(const char* topic, byte* payload, unsigned int length)
         tstat_mode = 'M';
       }
       break;
-    
+
     case 'a': // actual_temp
       last_temp = strtof(payloadStr, NULL);
       break;
-    
+
     default:
       ; /* do nothing */
   }
@@ -244,7 +243,7 @@ bool tstat_computeOutput(float t_temp, float a_temp)
 {
   if (tstat_mode != 'A')
     return config_heater_status;
-  
+
   // I know it's ugly but the thermostat has to keep some state
   static float final_temp = t_temp;
   static float anticipator_temp = 0;
@@ -253,11 +252,22 @@ bool tstat_computeOutput(float t_temp, float a_temp)
   {
     anticipator_temp += config_tstat_anticipator;
     final_temp = t_temp + config_tstat_hysteresis - anticipator_temp;
+    // save the current time only if the heating was shut down before
+    // avoids keeping the heater on forever
+    if (config_heater_status == false)
+      last_on_time = millis();
+
     return true;
   }
   // if we get here there's no need to turn on the heating system
   anticipator_temp -= config_tstat_anticipator;
   anticipator_temp = fmax(0, anticipator_temp);
   final_temp = t_temp - config_tstat_hysteresis - anticipator_temp;
+
+  // keep the heater on if MIN_HEATER_TIME is not elapsed yet
+  if ((config_heater_status == true) &&
+     ((millis() - last_on_time) < MIN_HEATER_TIME))
+    return true;
+
   return false;
 }
