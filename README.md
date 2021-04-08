@@ -1,8 +1,10 @@
 # ceci
 Our IoT sensor/actuator nodes based around the ESP8266
 
-## Folder "cece-pcb"
-Contains the PCB files, desgined in kicad.
+## Folder "ceci-hardware"
+Contains the PCB files, desgined in kicad. The files are stored in a subrepo
+available here:
+https://github.com/broken-giobbe/ceci-hardware
 
 ### Required Libraries:
 **TODO**

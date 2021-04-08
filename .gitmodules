@@ -1,0 +1,3 @@
+[submodule "ceci-hardware"]
+	path = ceci-hardware
+	url = git@github.com:broken-giobbe/ceci-hardware.git
