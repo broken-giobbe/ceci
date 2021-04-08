@@ -9,7 +9,7 @@ https://github.com/broken-giobbe/ceci-hardware
 ### Required Libraries:
 **TODO**
 
-## Folder "cece-firmware"
+## Folder "ceci-firmware"
 Contains the firmware for the Arduino IDE.
 
 ### Required Libraries:
