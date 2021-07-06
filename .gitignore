@@ -62,6 +62,6 @@ __vm/
 .vscode/
 
 # Config files contain sensitive information (wifi ssid etc.)
-cece-firmware/data/*
-!cece-firmware/data/config-example.ini
+ceci-firmware/data/*
+!ceci-firmware/data/config-example.ini
 

@@ -9,14 +9,14 @@
 #include "ConfigParser.h"
 
 // macros used to convert minutes to other stuff
-#define MINS_TO_SEC(x) (x*60)
-#define MINS_TO_MILLIS(x) (x*60*1000)
+#define MINS_TO_SEC(m) ((m)*60)
+#define SECS_TO_MILLIS(s) ((s)*1000)
+#define MINS_TO_MILLIS(m) ((m)*60*1000)
+
 // Baud rate for the UART port
 #define UART_BAUD_RATE 115200
 // Port where the heating control realy is connected
 #define HEATER_PORT D7
-// Minumim time the heater must stay on (avoids wasting energy)
-#define MIN_HEATER_TIME MINS_TO_MILLIS(1)
 // Rate in milliseconds at which the MQTT function loop() is called
 #define MQTT_LOOP_RATE 1000
 
@@ -27,14 +27,14 @@ WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
 #define MQTT_BUFFER_SIZE 50 // buffer size for MQTT operations
 
-// The target temperature for the thermostat mode
-float target_temp = 0;
-// The last temperature received from mqtt
+// The last temperature read from the sensor
 float last_temp = 0;
-// the mode the thermostat is in: A - auto, M - manual
+// The last humidity value read from the sensor
+float last_humidity = 0;
+// The current mode the thermostat is in: 'A' - auto, 'M' - manual
 char tstat_mode = 'M';
-// the last time the relay was on
-time_t last_on_time = 0;
+// the target temperature to be reached
+float target_temp = 0.0;
 
 void setup()
 {
@@ -74,17 +74,15 @@ void setup()
   }
 
   // Configure the heater relay output if needed
-  if (config_heater_status != -1)
+  if (thermostat_config.heater_status != -1)
   {
     pinMode(HEATER_PORT, OUTPUT);
-    digitalWrite(HEATER_PORT, config_heater_status);
+    digitalWrite(HEATER_PORT, thermostat_config.heater_status);
   }
 
   // Initialize MQTT
-  mqttClient.setServer(config_mqtt_server, config_mqtt_port);
+  mqttClient.setServer(mqtt_config.server, mqtt_config.port);
   mqttClient.setCallback(mqttCallback);
-  // Use config_meas_interval as keepalive time for MQTT connection
-  mqttClient.setKeepAlive(MINS_TO_SEC(config_meas_interval_min));
 
   // The HTU21D temp sensor is connected as in the following code
   // https://github.com/enjoyneering/HTU21D/blob/master/examples/HTU21D_Demo/HTU21D_Demo.ino
@@ -93,14 +91,21 @@ void setup()
   // (while sending the measurement, we round out the last decimal anyway)
   myHumidity.setResolution(USER_REGISTER_RESOLUTION_RH10_TEMP13);
 
-  // Setup the various tasks
+   /*
+   * Setup the various tasks, in the order of increasing priority
+   * Task to run the control loop if enabled (reads temperature & publish to the heater)
+   * Task to receive MQTT commands (to control the heater & settings) 
+   * Task to publish data (temp/humidity and local heater state)
+   * Task to control the GUI
+   */
+  sched_put_task(&thermostatControlLoop, SECS_TO_MILLIS(thermostat_config.sample_interval_sec));
   sched_put_task(&mqttKeepalive, MQTT_LOOP_RATE);
-  sched_put_task(&mqttPublishData, MINS_TO_MILLIS(config_meas_interval_min));
+  sched_put_task(&mqttPublishData, SECS_TO_MILLIS(mqtt_config.pub_interval_sec));
 
   // All done. Let's connect to the WiFi network
   Serial.print("[WiFi] Connecting to ");
-  Serial.print(config_wifi_ssid);
-  WiFi.begin(config_wifi_ssid, config_wifi_psk);
+  Serial.print(node_config.wifi_ssid);
+  WiFi.begin(node_config.wifi_ssid, node_config.wifi_psk);
   while (WiFi.status() != WL_CONNECTED)
   {
       delay(500);
@@ -121,35 +126,18 @@ void mqttPublishData()
 {
   char msg[MQTT_BUFFER_SIZE];
 
-  // Take humidity and temperature readings.
-  // Fail silently if the data is wrong
-  float humd = myHumidity.readHumidity();
-  float temp = myHumidity.readTemperature() - config_temp_offset;
-  Serial.print("[Sensors] Temperature: ");
-  Serial.print(temp);
-  Serial.print(" humidity: ") ;
-  Serial.println(humd);
+  snprintf(msg, MQTT_BUFFER_SIZE, "{\"temp\":%.1f,\"rhum\":%.1f}", last_temp, last_humidity);
 
-  if ((temp != ERROR_BAD_CRC) && (temp != ERROR_I2C_TIMEOUT) &&
-      (humd != ERROR_BAD_CRC) && (humd != ERROR_I2C_TIMEOUT))
-  {
-    snprintf(msg, MQTT_BUFFER_SIZE, "{\"temp\":%.1f,\"rhum\":%.1f}", temp, humd);
+  Serial.print("[MQTT] publish to: ");
+  Serial.println(mqtt_config.sensor_topic);
+  mqttClient.publish(mqtt_config.sensor_topic, msg, 1);
 
-    Serial.print("[MQTT] publish to: ");
-    Serial.println(config_sensor_topic);
-    mqttClient.publish(config_sensor_topic, msg, 1);
-  }
+  snprintf(msg, MQTT_BUFFER_SIZE, "{\"heater\":%i%c, \"target_temp\":%.1f}",
+      thermostat_config.heater_status, tstat_mode, target_temp);
 
-  // If this node can control some heating system then tell the world so
-  if (config_heater_status != -1)
-  {
-    snprintf(msg, MQTT_BUFFER_SIZE, "{\"heater\":%i%c, \"target_temp\":%.1f}",
-      config_heater_status, tstat_mode, target_temp);
-
-    Serial.print("[MQTT] publish to: ");
-    Serial.println(config_tstat_status_topic);
-    mqttClient.publish(config_tstat_status_topic, msg);
-  }
+  Serial.print("[MQTT] publish to: ");
+  Serial.println(mqtt_config.tstat_status_topic);
+  mqttClient.publish(mqtt_config.tstat_status_topic, msg);
 }
 
 /**
@@ -162,30 +150,21 @@ void mqttKeepalive()
   {
     Serial.print("[MQTT] Attempting connection...");
 
-    if (mqttClient.connect(config_node_name)) {
+    if (mqttClient.connect(node_config.name)) {
       Serial.println(" Success.");
-      // If this node controls the heating system (re)subscribe to the required topics
-      if (config_heater_status != -1)
-      {
-        mqttClient.subscribe(config_tstat_target_temp_topic);
-        mqttClient.subscribe(config_tstat_mode_topic);
-        mqttClient.subscribe(config_tstat_actual_temp_topic);
-      }
+
+      // (re)subscribe to the required topics
+      mqttClient.subscribe(mqtt_config.tstat_enable_topic);
+      mqttClient.subscribe(mqtt_config.tstat_mode_topic);
+      mqttClient.subscribe(mqtt_config.tstat_target_topic);
     } else {
-      Serial.println(" Fail: rc=");
+      Serial.print(" Fail: rc=");
       Serial.println(mqttClient.state());
-      Serial.println("[MQTT] Will try again in 5 seconds.");
-      // Wait 5 seconds before retrying
-      delay(5000);
+      return;
     }
   }
 
   mqttClient.loop();
-
-  // Since every time mqtt.loop() is run the heating parameters can change,
-  // recompute the heater status output
-  config_heater_status = tstat_computeOutput(target_temp, last_temp);
-  digitalWrite(HEATER_PORT, config_heater_status);
 }
 
 /**
@@ -197,7 +176,7 @@ void mqttKeepalive()
  */
 void mqttCallback(const char* topic, byte* payload, unsigned int length)
 {
-  char* payloadStr = (char*) malloc(length + 1); // for null terminator char
+  char payloadStr[length + 1]; // +1 for null terminator char
   snprintf(payloadStr, length+1, "%s", payload);
 
   // keep only the last part of the topic, the rest does not give us any info
@@ -209,65 +188,78 @@ void mqttCallback(const char* topic, byte* payload, unsigned int length)
   Serial.println(payloadStr);
 
   switch (topic[0]) {
-    case 't': // target_temp
-      target_temp = strtof(payloadStr, NULL);
-      break;
-
-    case 'm': // mode
-      if(payload[0] == 'A') // auto mode
-      {
-        tstat_mode = 'A';
-      } else { // manual mode
-        config_heater_status = (payload[0] == '1');
-        tstat_mode = 'M';
+    case 'e': // enable
+      if(thermostat_config.heater_status != -1) {
+        thermostat_config.heater_status = atoi(payloadStr);
+        digitalWrite(HEATER_PORT, thermostat_config.heater_status);
       }
       break;
 
-    case 'a': // actual_temp
-      last_temp = strtof(payloadStr, NULL);
+    case 'm': // mode
+      if ((payloadStr[0] == 'A') || (payloadStr[0] == 'M')) {
+        tstat_mode = payloadStr[0];
+        // Make sure the thermostat control loop is run next
+        sched_reschedule_taskID(sched_get_taskID(&thermostatControlLoop), 0);
+      }
+      break;
+    
+    case 't': // target_temp
+      target_temp = fmaxf(0.0, strtof(payloadStr, NULL));
+      // Make sure the thermostat control loop is run next
+      sched_reschedule_taskID(sched_get_taskID(&thermostatControlLoop), 0);
       break;
 
     default:
       ; /* do nothing */
   }
-
-  free(payloadStr);
 }
 
 /*
- * Compute a new value for the thermostat output
- * t_temp -> target temperature to reach
- * a_temp -> actual temperature
+ * Get a temperature (&humidity) reading and compute the thermostat output if needed
  */
-bool tstat_computeOutput(float t_temp, float a_temp)
+void thermostatControlLoop(void)
 {
+  // Take humidity and temperature readings.
+  // Fail silently if the data is wrong
+  last_humidity = myHumidity.readHumidity();
+  last_temp = myHumidity.readTemperature() - node_config.temp_offset;
+  Serial.print("[Sensors] Temperature: ");
+  Serial.print(last_temp);
+  Serial.print(" humidity: ");
+  Serial.println(last_humidity);
+
+  if ((last_temp == ERROR_BAD_CRC) || (last_temp == ERROR_I2C_TIMEOUT) ||
+      (last_humidity == ERROR_BAD_CRC) || (last_humidity == ERROR_I2C_TIMEOUT))
+    return;
+
+  // Continue with the function only if the thermostat mode is set to auto ('A')
   if (tstat_mode != 'A')
-    return config_heater_status;
+    return;
 
   // I know it's ugly but the thermostat has to keep some state
-  static float final_temp = t_temp;
+  static float old_target_temp = target_temp;
+  static float final_temp = target_temp;
   static float anticipator_temp = 0;
 
-  if (a_temp < final_temp) // actual temp is lower than expected -> heat up
-  {
-    anticipator_temp += config_tstat_anticipator;
-    final_temp = t_temp + config_tstat_hysteresis - anticipator_temp;
-    // save the current time only if the heating was shut down before
-    // avoids keeping the heater on forever
-    if (config_heater_status == false)
-      last_on_time = millis();
-
-    return true;
+  // if target temperature has changed reset the state
+  if (old_target_temp != target_temp) {
+    final_temp = target_temp;
+    anticipator_temp = 0;
+    old_target_temp = target_temp;
   }
-  // if we get here there's no need to turn on the heating system
-  anticipator_temp -= config_tstat_anticipator;
-  anticipator_temp = fmax(0, anticipator_temp);
-  final_temp = t_temp - config_tstat_hysteresis - anticipator_temp;
-
-  // keep the heater on if MIN_HEATER_TIME is not elapsed yet
-  if ((config_heater_status == true) &&
-     ((millis() - last_on_time) < MIN_HEATER_TIME))
-    return true;
-
-  return false;
+  
+  Serial.print("[thermostat] final_temp = ");
+  Serial.println(final_temp);
+  
+  if (last_temp < final_temp) // actual temp is lower than expected -> heat up
+  {
+    anticipator_temp += thermostat_config.anticipator;
+    final_temp = target_temp + thermostat_config.hysteresis - anticipator_temp;
+    mqttClient.publish(mqtt_config.tstat_output_topic, "1");
+  } else {
+    anticipator_temp -= thermostat_config.anticipator;
+    anticipator_temp = fmaxf(0, anticipator_temp);
+    final_temp = target_temp - thermostat_config.hysteresis - anticipator_temp;
+    mqttClient.publish(mqtt_config.tstat_output_topic, "0");
+  }
 }

@@ -43,7 +43,7 @@ typedef struct task_t task_t;
  * 
  * Returns the task ID or -1 if the insertion failed.
  */
-size_t sched_put_task(void (*taskFunction)(void), unsigned long rate); 
+int sched_put_task(void (*taskFunction)(void), unsigned long rate); 
 
  /*
  * Put a task in the scheduler, specifying the task ID.
@@ -51,10 +51,25 @@ size_t sched_put_task(void (*taskFunction)(void), unsigned long rate);
  * 
  * Returns the task ID or -1 if the insertion failed.
  */
-size_t sched_put_taskID(size_t id, void (*taskFunction)(void), unsigned long rate);
+int sched_put_taskID(size_t id, void (*taskFunction)(void), unsigned long rate);
 
  /*
   * Returns the CPU usage as a percentage
   */
 uint8_t sched_get_CPU_usage();
+
+ /*
+  * Returns the task ID for the task with the same function pointer as the one in
+  * taskFunction or -1 if no task with such function exists.
+  */
+int sched_get_taskID(void (*taskFunction)(void));
+
+ /*
+  * Reschedule a task to be run at a specified time.
+  *   id   - task id to be rescheduled
+  *   when - time in millis() for the next run of the task
+  *   
+  * If the task does not exist this function will fail silently
+  */
+void sched_reschedule_taskID(size_t id, unsigned long when);
 #endif
