@@ -93,17 +93,17 @@ void setup()
   sched_put_task(&mqttPublishData, SECS_TO_MILLIS(mqtt_config.pub_interval_sec));
 
   // All done. Let's connect to the WiFi network
-  Serial.print("[WiFi] Connecting to ");
-  Serial.print(node_config.wifi_ssid);
+  LOG("WiFi: connecting to %s", node_config.wifi_ssid);
+  
+  WiFi.hostname(node_config.name);
   WiFi.begin(node_config.wifi_ssid, node_config.wifi_psk);
   while (WiFi.status() != WL_CONNECTED)
   {
       delay(500);
       Serial.print(".");
   }
-  Serial.print("\n[WiFi] Connected. RSSI = ");
-  Serial.print(WiFi.RSSI());
-  Serial.println(" dBm");
+  Serial.println("");
+  LOG("WiFi: connected. RSSI = %d dBm", WiFi.RSSI());
 
   digitalWrite(LED_BUILTIN, HIGH);
 }
