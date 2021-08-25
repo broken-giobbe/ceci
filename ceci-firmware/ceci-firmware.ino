@@ -3,10 +3,9 @@
 **/
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
-#include <Wire.h>
-#include <SparkFunHTU21D.h>
 
 #include "ConfigParser.h"
+#include "TempSensor.h"
 
 // macros used to convert minutes to other stuff
 #define MINS_TO_SEC(m) ((m)*60)
@@ -14,23 +13,21 @@
 #define MINS_TO_MILLIS(m) ((m)*60*1000)
 
 // Baud rate for the UART port
-#define UART_BAUD_RATE 115200
+#define UART_BAUD_RATE 230400
 // Port where the heating control realy is connected
 #define HEATER_PORT D7
 // Rate in milliseconds at which the MQTT function loop() is called
 #define MQTT_LOOP_RATE 1000
+// Size of the buffer for reading/sending MQTT messages
+#define MQTT_BUFFER_SIZE 64
 
-// HTU21D temperature & Humidity sensor
-HTU21D myHumidity;
+// Facility used for logging messages to the serial port
+#define LOG(fmt, ...) Serial.printf("[%lu, %s] " fmt "\n", millis(), __func__, ##__VA_ARGS__)
 
+// MQTT client
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
-#define MQTT_BUFFER_SIZE 50 // buffer size for MQTT operations
 
-// The last temperature read from the sensor
-float last_temp = 0;
-// The last humidity value read from the sensor
-float last_humidity = 0;
 // The current mode the thermostat is in: 'A' - auto, 'M' - manual
 char tstat_mode = 'M';
 // the target temperature to be reached
@@ -38,41 +35,41 @@ float target_temp = 0.0;
 
 void setup()
 {
-  // enable WiFi and light sleep mode
-  WiFi.mode(WIFI_STA);
-  wifi_set_sleep_type(LIGHT_SLEEP_T);
-
   // initialize onboard LED as output and turn it on
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
-
+  
+  // enable WiFi and light sleep mode
+  WiFi.mode(WIFI_STA);
+  wifi_set_sleep_type(LIGHT_SLEEP_T);
+  
   // initialize serial
   Serial.begin(UART_BAUD_RATE);
   Serial.println("");
 
   // read config.ini file from SPIFFS and initialize variables
-  int retval = parseConfig();
-  switch (retval) {
-    case 0:
-      Serial.println("[Config] OK.");
-      break;
-    case E_SPIFFSINIT:
-      Serial.println("[Config] Invalid config file found. Aborting setup().");
-      while (1) yield(); // avoid triggering the WDT: https://sigmdel.ca/michel/program/esp8266/arduino/watchdogs_en.html
-      break;
-    case E_NOCONF:
-      Serial.println("[Config] No config file found. Aborting setup().");
-      while (1) yield();
-      break;
-    case E_INVCONF:
-      Serial.println("[Config] Invalid config file found. Aborting setup().");
-      while (1) yield();
-      break;
-    default:
-      Serial.println("[Config] WTF!? Something bad happened. Aborting setup().");
-      while (1) yield();
-  }
+  SPIFFSIniFile* conf = open_config_file();
 
+  if (conf == NULL)
+  {
+    Serial.println("[Config] SPIFFS initialization failed. Aborting setup().");
+    while (1) yield(); // avoid triggering the WDT: https://sigmdel.ca/michel/program/esp8266/arduino/watchdogs_en.html
+  }
+  if (conf->getError() != SPIFFSIniFile::errorNoError)
+  {
+    Serial.print("[Config] Error opening config file. Reason:");
+    Serial.print(config_get_error_str(conf));
+    Serial.println(". Aborting setup().");
+    while (1) yield();
+  }
+  parse_config(conf);
+  
+  // initialize the temperature sensor with the correct offset
+  temp_sensor_init(config_get_temperature_offset(conf));
+
+  // Done with the config file. Close it
+  close_config_file(conf);
+  
   // Configure the heater relay output if needed
   if (thermostat_config.heater_status != -1)
   {
@@ -83,13 +80,6 @@ void setup()
   // Initialize MQTT
   mqttClient.setServer(mqtt_config.server, mqtt_config.port);
   mqttClient.setCallback(mqttCallback);
-
-  // The HTU21D temp sensor is connected as in the following code
-  // https://github.com/enjoyneering/HTU21D/blob/master/examples/HTU21D_Demo/HTU21D_Demo.ino
-  myHumidity.begin();
-  // Reduce the resolution a bit to get faster measurements
-  // (while sending the measurement, we round out the last decimal anyway)
-  myHumidity.setResolution(USER_REGISTER_RESOLUTION_RH10_TEMP13);
 
    /*
    * Setup the various tasks, in the order of increasing priority
@@ -125,18 +115,21 @@ void setup()
 void mqttPublishData()
 {
   char msg[MQTT_BUFFER_SIZE];
+  temperature_t temp = get_temperature();
+  humidity_t hmdt = get_humidity();
 
-  snprintf(msg, MQTT_BUFFER_SIZE, "{\"temp\":%.1f,\"rhum\":%.1f}", last_temp, last_humidity);
+  if (temp.valid) // We don't care about humidity since some sensors do not report it
+  {
+    snprintf(msg, MQTT_BUFFER_SIZE, "{\"temp\":%.1f,\"rhum\":%.1f}", temp.value, hmdt.value);
 
-  Serial.print("[MQTT] publish to: ");
-  Serial.println(mqtt_config.sensor_topic);
-  mqttClient.publish(mqtt_config.sensor_topic, msg, 1);
-
+    LOG("Publishing %s to %s", msg, mqtt_config.sensor_topic);
+    mqttClient.publish(mqtt_config.sensor_topic, msg, 1);
+  }
+  
   snprintf(msg, MQTT_BUFFER_SIZE, "{\"heater\":%i%c, \"target_temp\":%.1f}",
       thermostat_config.heater_status, tstat_mode, target_temp);
 
-  Serial.print("[MQTT] publish to: ");
-  Serial.println(mqtt_config.tstat_status_topic);
+  LOG("Publishing %s to %s", msg, mqtt_config.tstat_status_topic);
   mqttClient.publish(mqtt_config.tstat_status_topic, msg);
 }
 
@@ -146,21 +139,19 @@ void mqttPublishData()
  */
 void mqttKeepalive()
 {
-  while (!mqttClient.connected())
+  if (!mqttClient.connected())
   {
-    Serial.print("[MQTT] Attempting connection...");
+    LOG("Connecting to %s:%d...", mqtt_config.server, mqtt_config.port);
 
     if (mqttClient.connect(node_config.name)) {
-      Serial.println(" Success.");
+      LOG("Connection success.");
 
       // (re)subscribe to the required topics
       mqttClient.subscribe(mqtt_config.tstat_enable_topic);
       mqttClient.subscribe(mqtt_config.tstat_mode_topic);
       mqttClient.subscribe(mqtt_config.tstat_target_topic);
     } else {
-      Serial.print(" Fail: rc=");
-      Serial.println(mqttClient.state());
-      return;
+      LOG("Connection failed: rc=%d", mqttClient.state());
     }
   }
 
@@ -182,10 +173,7 @@ void mqttCallback(const char* topic, byte* payload, unsigned int length)
   // keep only the last part of the topic, the rest does not give us any info
   topic = strrchr(topic, '/') + 1;
 
-  Serial.print("[MQTT] Received ");
-  Serial.print(topic);
-  Serial.print(" -> ");
-  Serial.println(payloadStr);
+  LOG("Received %s -> %s", topic, payloadStr);
 
   switch (topic[0]) {
     case 'e': // enable
@@ -219,19 +207,13 @@ void mqttCallback(const char* topic, byte* payload, unsigned int length)
  */
 void thermostatControlLoop(void)
 {
-  // Take humidity and temperature readings.
-  // Fail silently if the data is wrong
-  last_humidity = myHumidity.readHumidity();
-  last_temp = myHumidity.readTemperature() - node_config.temp_offset;
-  Serial.print("[Sensors] Temperature: ");
-  Serial.print(last_temp);
-  Serial.print(" humidity: ");
-  Serial.println(last_humidity);
+  temperature_t temp = get_temperature();
+  
+  LOG("Temperature: %f valid: %s", temp.value, (temp.valid ? "true" : "false"));
 
-  if ((last_temp == ERROR_BAD_CRC) || (last_temp == ERROR_I2C_TIMEOUT) ||
-      (last_humidity == ERROR_BAD_CRC) || (last_humidity == ERROR_I2C_TIMEOUT))
-    return;
-
+  if (!temp.valid)
+    return; // Fail silently if the data is wrong
+  
   // Continue with the function only if the thermostat mode is set to auto ('A')
   if (tstat_mode != 'A')
     return;
@@ -247,11 +229,10 @@ void thermostatControlLoop(void)
     anticipator_temp = 0;
     old_target_temp = target_temp;
   }
+
+  LOG("final_temp = %f", final_temp);
   
-  Serial.print("[thermostat] final_temp = ");
-  Serial.println(final_temp);
-  
-  if (last_temp < final_temp) // actual temp is lower than expected -> heat up
+  if (temp.value < final_temp) // actual temp is lower than expected -> heat up
   {
     anticipator_temp += thermostat_config.anticipator;
     final_temp = target_temp + thermostat_config.hysteresis - anticipator_temp;

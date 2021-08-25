@@ -21,8 +21,6 @@
 struct node_config_t {
     // Name of the node. Will be also used to generate the MQTT topic names
     char  name[CONF_STRING_LENGTH] = "A Horse with No Name";
-    // compensate for measurement offset of temperature readings
-    float temp_offset = 0.0;
     // SSID of the WiFi network the node will connect to on boot
     char  wifi_ssid[CONF_STRING_LENGTH];
     // Password of the WiFi network the node will connect to on boot
@@ -63,18 +61,31 @@ struct mqtt_config_t {
     char     tstat_target_topic[CONF_STRING_LENGTH];
 } mqtt_config;
 
-// Error initializing the SPIFFS partition
-#define E_SPIFFSINIT -1
-// No config file found
-#define E_NOCONF -2
-// Invalid config file found
-#define E_INVCONF -3
+/*
+ * Open the config file for reading. It returns the file descriptor structure
+ */
+SPIFFSIniFile* open_config_file(void);
 
 /*
  * Parse the configuration file.
  * 
- * Returns 0 on success or one of the errors above on failure
+ * If some of the config keys are not prtesent in the file, the default value is used
  */
-int parseConfig();
+void parse_config(SPIFFSIniFile* ini);
+
+/*
+ * Return a string representation of the latest error occurred (if any)
+ */
+const char* config_get_error_str(SPIFFSIniFile* ini);
+
+/*
+ * Temperature offset is stored in the temp sensor driver, so retrieve it separately
+ */
+float config_get_temperature_offset(SPIFFSIniFile* ini);
+
+/*
+ * Close the config file to free up memory
+ */
+void close_config_file(SPIFFSIniFile *ini);
 
 #endif

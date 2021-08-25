@@ -72,4 +72,5 @@ int sched_get_taskID(void (*taskFunction)(void));
   * If the task does not exist this function will fail silently
   */
 void sched_reschedule_taskID(size_t id, unsigned long when);
+
 #endif
