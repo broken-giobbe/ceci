@@ -27,9 +27,11 @@ static unsigned long timestamp_ms = 0;
  */
 void sensor_read(void);
 
-temperature_t get_temperature(void)
+temperature_t get_temperature(unsigned long timelimit_ms)
 {
-  if ((millis() - timestamp_ms) >= SAMPLE_INTERVAL_MS) {
+  timelimit_ms = max(MIN_SAMPLE_INTERVAL_MS, timelimit_ms);
+  
+  if ((millis() - timestamp_ms) >= timelimit_ms) {
     timestamp_ms = millis();
     sensor_read();
   }
@@ -37,9 +39,11 @@ temperature_t get_temperature(void)
   return last_temp;
 }
 
-humidity_t get_humidity(void)
+humidity_t get_humidity(unsigned long timelimit_ms)
 {
-  if ((millis() - timestamp_ms) >= SAMPLE_INTERVAL_MS) {
+  timelimit_ms = max(MIN_SAMPLE_INTERVAL_MS, timelimit_ms);
+  
+  if ((millis() - timestamp_ms) >= timelimit_ms) {
     timestamp_ms = millis();
     sensor_read();
   }

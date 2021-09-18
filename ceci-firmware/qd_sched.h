@@ -22,13 +22,19 @@
  * The less frequent the ticks (the higher SCHED_TICKS_MS) te more time is spent sleeping,
  * at the expense of scheduling accuracy.
  */
-#define SCHED_TICK_MS 100
+#define SCHED_TICK_MS 10
 
 /* 
  * SCHED_NUM_TASKS controls the maximum number of tasks that can be allocated.
  * If you try to allocate more than SCHED_NUM_TASKS your allocation will fail and the task will never be run.
  */
-#define SCHED_NUM_TASKS 3
+#define SCHED_NUM_TASKS 4
+
+/*
+ * Enable or disable the usage of the builtin LED to signal that the scheduler is busy.
+ * Warning: photosensitive epilepsy hazard
+ */
+#define SCHED_USE_BLINKENLIGHT
 
 // Data structure describing a task
 struct task_t {
@@ -41,9 +47,14 @@ typedef struct task_t task_t;
 /*
  * Put a task in the scheduler.
  * 
+ * Parameters:
+ *  taskFunction    - pointer to a function to be run
+ *  rate            - rate in ms for the task to run
+ *  run_immediately - run the task immediatelly after it has been scheduled or wait for rate to expire
+ *  
  * Returns the task ID or -1 if the insertion failed.
  */
-int sched_put_task(void (*taskFunction)(void), unsigned long rate); 
+int sched_put_task(void (*taskFunction)(void), unsigned long rate, bool run_immediately); 
 
  /*
  * Put a task in the scheduler, specifying the task ID.
@@ -51,7 +62,7 @@ int sched_put_task(void (*taskFunction)(void), unsigned long rate);
  * 
  * Returns the task ID or -1 if the insertion failed.
  */
-int sched_put_taskID(size_t id, void (*taskFunction)(void), unsigned long rate);
+int sched_put_taskID(size_t id, void (*taskFunction)(void), unsigned long rate, bool run_immediately);
 
  /*
   * Returns the CPU usage as a percentage

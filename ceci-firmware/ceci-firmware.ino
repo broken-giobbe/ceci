@@ -6,6 +6,7 @@
 
 #include "ConfigParser.h"
 #include "TempSensor.h"
+#include "UIDriver.h"
 
 // macros used to convert minutes to other stuff
 #define MINS_TO_SEC(m) ((m)*60)
@@ -47,6 +48,9 @@ void setup()
   Serial.begin(UART_BAUD_RATE);
   Serial.println("");
 
+  // Initialize UI & display, to start showing something during boot
+  ui_init();
+
   // read config.ini file from SPIFFS and initialize variables
   SPIFFSIniFile* conf = open_config_file();
 
@@ -84,13 +88,15 @@ void setup()
    /*
    * Setup the various tasks, in the order of increasing priority
    * Task to run the control loop if enabled (reads temperature & publish to the heater)
+   *  This task has to run immediately after being scheduled since nobody likes a termostat that has unnecessary starup delay
    * Task to receive MQTT commands (to control the heater & settings) 
    * Task to publish data (temp/humidity and local heater state)
    * Task to control the GUI
    */
-  sched_put_task(&thermostatControlLoop, SECS_TO_MILLIS(thermostat_config.sample_interval_sec));
-  sched_put_task(&mqttKeepalive, MQTT_LOOP_RATE);
-  sched_put_task(&mqttPublishData, SECS_TO_MILLIS(mqtt_config.pub_interval_sec));
+  sched_put_task(&thermostatControlLoop, SECS_TO_MILLIS(thermostat_config.sample_interval_sec), true);
+  sched_put_task(&mqttKeepalive, MQTT_LOOP_RATE, false);
+  sched_put_task(&mqttPublishData, SECS_TO_MILLIS(mqtt_config.pub_interval_sec), false);
+  sched_put_task(&ui_task, UI_REFRESH_RATE_MS, false);
 
   // All done. Let's connect to the WiFi network
   LOG("WiFi: connecting to %s", node_config.wifi_ssid);

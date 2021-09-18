@@ -7,7 +7,7 @@ static unsigned long elapsed_time;
 // Tasks to run
 static task_t tasks[SCHED_NUM_TASKS] = {0};
 
-int sched_put_task(void (*taskFunction)(void), unsigned long rate)
+int sched_put_task(void (*taskFunction)(void), unsigned long rate, bool run_immediately)
 {
   size_t emptyIdx = 0;
   
@@ -21,16 +21,18 @@ int sched_put_task(void (*taskFunction)(void), unsigned long rate)
 
   tasks[emptyIdx].taskFunc = taskFunction;
   tasks[emptyIdx].rateMillis = rate;
+  tasks[emptyIdx].lastRunMillis = run_immediately ? -1*rate : 0;
   return emptyIdx;
 }
 
-int sched_put_taskID(size_t id, void (*taskFunction)(void), unsigned long rate)
+int sched_put_taskID(size_t id, void (*taskFunction)(void), unsigned long rate, bool run_immediately)
 {
   if (id >= SCHED_NUM_TASKS)
     return -1;
 
   tasks[id].taskFunc = taskFunction;
   tasks[id].rateMillis = rate;
+  tasks[id].lastRunMillis = run_immediately ? -1*rate : 0;
   return id;
 }
 
@@ -68,13 +70,18 @@ void loop()
   {
     if (tasks[i].taskFunc && (entry_time - tasks[i].lastRunMillis) >= tasks[i].rateMillis)
     {
+#ifdef SCHED_USE_BLINKENLIGHT
+      digitalWrite(LED_BUILTIN, LOW);
+#endif
       tasks[i].lastRunMillis = millis();
       (*tasks[i].taskFunc)();
+#ifdef SCHED_USE_BLINKENLIGHT
+      digitalWrite(LED_BUILTIN, HIGH);
+#endif
     }
   }
   
   elapsed_time = millis() - entry_time;
- 
   // sleep until the next full tick
   delay(SCHED_TICK_MS - (elapsed_time % SCHED_TICK_MS));
 }

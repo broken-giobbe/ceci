@@ -16,17 +16,22 @@
 
 // Use the LM75 temperature sensor and set the I2C address
 #define LM75_TEMP_SENSOR
-#define LM75_SENSOR_ADDRESS 0x48
-
-// Receive the temperature/humidity readings from a remote sensor using MQTT
-//#define MQTT_TEMP_SENSOR
+#define LM75_SENSOR_ADDRESS 0x4F
 
 // give the temperature sensor some rest between readings. Reduces self-heating.
 // If two humidity/temperature requests are made within this interval the old value is returned instead
-#define SAMPLE_INTERVAL_MS 1000
+#define MIN_SAMPLE_INTERVAL_MS 1000UL
 
 // The precision used to return temperature and humidity readings
 #define SENSOR_PRECISION 0.5
+
+// I want the most recent and precise temperature reading available,
+// without caring if I wake the sensor too often
+#define SENSOR_MOST_RECENT 0
+
+// I just want a temperature reading, I don't care how old it is
+// there's no need to bother the sensor
+#define SENSOR_NOWAKE ULONG_MAX
 
 /*
  * Datatype for temperature & humidity readings.
@@ -47,11 +52,11 @@ void temp_sensor_init(float offset);
 /*
  * Get the most recent temperature reading
  */
-temperature_t get_temperature(void);
+temperature_t get_temperature(unsigned long timelimit_ms = SENSOR_MOST_RECENT);
 
 /*
- * Get the most recent humidity reading
+ * Get the most recent humidity reading, not older than timelimit_ms
  */
-humidity_t get_humidity(void);
+humidity_t get_humidity(unsigned long timelimit_ms = SENSOR_MOST_RECENT);
 
 #endif
