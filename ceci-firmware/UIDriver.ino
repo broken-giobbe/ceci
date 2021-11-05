@@ -62,9 +62,9 @@ void ui_init(void)
     for(;;) yield(); // Don't proceed, loop forever
   }
   
-  // Clear the buffer
-  display.ssd1306_command(SSD1306_SETCONTRAST);                   // 0x81
-  display.ssd1306_command(0x0A);
+  // Set the contrast and clear the buffer
+  display.ssd1306_command(SSD1306_SETCONTRAST);
+  display.ssd1306_command(SCREEN_CONTRAST);
   display.clearDisplay();
 
   // Show loading text
@@ -170,10 +170,6 @@ void ui_task(void)
       }
       break;
   }
-  
-
-  display.setCursor(0, SCREEN_HEIGHT - CHAR_HEIGHT);
-  display.setTextSize(1);
 
   display.display();
 }

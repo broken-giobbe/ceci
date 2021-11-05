@@ -4,6 +4,7 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
+#include "sysconfig.h"
 #include "ConfigParser.h"
 #include "TempSensor.h"
 #include "UIDriver.h"
@@ -12,15 +13,6 @@
 #define MINS_TO_SEC(m) ((m)*60)
 #define SECS_TO_MILLIS(s) ((s)*1000)
 #define MINS_TO_MILLIS(m) ((m)*60*1000)
-
-// Baud rate for the UART port
-#define UART_BAUD_RATE 230400
-// Port where the heating control realy is connected
-#define HEATER_PORT D7
-// Rate in milliseconds at which the MQTT function loop() is called
-#define MQTT_LOOP_RATE 1000
-// Size of the buffer for reading/sending MQTT messages
-#define MQTT_BUFFER_SIZE 64
 
 // Facility used for logging messages to the serial port
 #define LOG(fmt, ...) Serial.printf("[%lu, %s] " fmt "\n", millis(), __func__, ##__VA_ARGS__)

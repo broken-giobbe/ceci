@@ -12,6 +12,9 @@
 // Increment/decrement amount for target temperature
 #define TEMP_INCDEC 0.5
 
+// OLED display contrast. Must be between 0 and 255
+#define SCREEN_CONTRAST 0x0F // 16
+
 #define SCREEN_WIDTH  128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
