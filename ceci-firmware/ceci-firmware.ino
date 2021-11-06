@@ -3,11 +3,14 @@
 **/
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include "FS.h"
+#include <SPIFFSIniFile.h>
 
 #include "sysconfig.h"
 #include "ConfigParser.h"
-#include "TempSensor.h"
+#include "AmbientSensor.h"
 #include "UIDriver.h"
+#include "modules.h"
 
 // macros used to convert minutes to other stuff
 #define MINS_TO_SEC(m) ((m)*60)
@@ -21,13 +24,64 @@
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
 
+// This node needs a name
+static String node_name;
+
 // The current mode the thermostat is in: 'A' - auto, 'M' - manual
 char tstat_mode = 'M';
 // the target temperature to be reached
 float target_temp = 0.0;
 
+/*
+ * Helper function to open the config file
+ */
+SPIFFSIniFile* conf_openFile(void)
+{
+  SPIFFSIniFile* ini = new SPIFFSIniFile(CONFIG_FILENAME);
+   
+  if (!SPIFFS.begin())
+  {
+    LOG("SPIFFS initialization failed. Aborting.");
+    while (1) yield(); // avoid triggering the WDT: https://sigmdel.ca/michel/program/esp8266/arduino/watchdogs_en.html
+  }
+ 
+  if (!ini->open())
+  {
+    LOG("Cannot open config file. Aborting.");
+    while (1) yield();
+  }
+
+  return ini;
+}
+
+/*
+ * Facility for reading srings from the config file
+ */
+String conf_getStr(SPIFFSIniFile* conf, const char* section, const char* key)
+{
+  char buf[TXT_BUF_SIZE]; // buffer for reading config file
+  char str_buf[TXT_BUF_SIZE]; // temporary placeholder for strings
+
+  conf->getValue(section, key, buf, TXT_BUF_SIZE, str_buf, TXT_BUF_SIZE);
+  return String(str_buf);
+}
+
+/*
+ * Facility for reading floats from the config file
+ */
+float conf_getFloat(SPIFFSIniFile* conf, const char* section, const char* key)
+{
+  float retval = 0;
+  char buf[TXT_BUF_SIZE];
+  
+  conf->getValue(section, key, buf, TXT_BUF_SIZE, retval);
+  return retval;
+}
+
 void setup()
 {
+  char buf[TXT_BUF_SIZE]; // buffer for reading config variables
+  
   // initialize onboard LED as output and turn it on
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
@@ -44,28 +98,16 @@ void setup()
   ui_init();
 
   // read config.ini file from SPIFFS and initialize variables
-  SPIFFSIniFile* conf = open_config_file();
+  SPIFFSIniFile* conf = conf_openFile();
 
-  if (conf == NULL)
-  {
-    Serial.println("[Config] SPIFFS initialization failed. Aborting setup().");
-    while (1) yield(); // avoid triggering the WDT: https://sigmdel.ca/michel/program/esp8266/arduino/watchdogs_en.html
-  }
-  if (conf->getError() != SPIFFSIniFile::errorNoError)
-  {
-    Serial.print("[Config] Error opening config file. Reason:");
-    Serial.print(config_get_error_str(conf));
-    Serial.println(". Aborting setup().");
-    while (1) yield();
-  }
+  // first of all we need a name
+  node_name = conf_getStr(conf, "global", "node_name");
+  
   parse_config(conf);
   
   // initialize the temperature sensor with the correct offset
-  temp_sensor_init(config_get_temperature_offset(conf));
+  temp_sensor_init(conf_getFloat(conf, "global", "temp_offset"));
 
-  // Done with the config file. Close it
-  close_config_file(conf);
-  
   // Configure the heater relay output if needed
   if (thermostat_config.heater_status != -1)
   {
@@ -74,7 +116,11 @@ void setup()
   }
 
   // Initialize MQTT
-  mqttClient.setServer(mqtt_config.server, mqtt_config.port);
+  String mqtt_server = conf_getStr(conf, "global", "mqtt_Server");
+  int mqtt_port = 1883;
+  conf->getValue("global", "mqtt_port", buf, TXT_BUF_SIZE, mqtt_port);
+  
+  mqttClient.setServer(mqtt_server.c_str(), mqtt_port);
   mqttClient.setCallback(mqttCallback);
 
    /*
@@ -87,14 +133,23 @@ void setup()
    */
   sched_put_task(&thermostatControlLoop, SECS_TO_MILLIS(thermostat_config.sample_interval_sec), true);
   sched_put_task(&mqttKeepalive, MQTT_LOOP_RATE, false);
-  sched_put_task(&mqttPublishData, SECS_TO_MILLIS(mqtt_config.pub_interval_sec), false);
   sched_put_task(&ui_task, UI_REFRESH_RATE_MS, false);
 
-  // All done. Let's connect to the WiFi network
-  LOG("WiFi: connecting to %s", node_config.wifi_ssid);
+  // now that the drivers have been initialized the moules can be initialized too
+  mod_sensors_init(conf);
+
+  // Last but not least wifi conenction parameters
+  String ssid = conf_getStr(conf, "global", "wifi_ssid");
+  String wpsk = conf_getStr(conf, "global", "wifi_psk");
   
-  WiFi.hostname(node_config.name);
-  WiFi.begin(node_config.wifi_ssid, node_config.wifi_psk);
+  // Done with the config file. Close it
+  delete conf; // delete calls the destructor to also close the file
+  
+  // Now we are ready to connect to the WiFi network
+  LOG("WiFi: connecting to %s", ssid.c_str());
+  
+  WiFi.hostname(node_name);
+  WiFi.begin(ssid, wpsk);
   while (WiFi.status() != WL_CONNECTED)
   {
       delay(500);
@@ -103,32 +158,8 @@ void setup()
   Serial.println("");
   LOG("WiFi: connected. RSSI = %d dBm", WiFi.RSSI());
 
+  // initialization complete
   digitalWrite(LED_BUILTIN, HIGH);
-}
-
-/**
- * Publish node data using MQTT.
- * Basically we publish the sensor readings and the thermostat status (if available)
- */
-void mqttPublishData()
-{
-  char msg[MQTT_BUFFER_SIZE];
-  temperature_t temp = get_temperature();
-  humidity_t hmdt = get_humidity();
-
-  if (temp.valid) // We don't care about humidity since some sensors do not report it
-  {
-    snprintf(msg, MQTT_BUFFER_SIZE, "{\"temp\":%.1f,\"rhum\":%.1f}", temp.value, hmdt.value);
-
-    LOG("Publishing %s to %s", msg, mqtt_config.sensor_topic);
-    mqttClient.publish(mqtt_config.sensor_topic, msg, 1);
-  }
-  
-  snprintf(msg, MQTT_BUFFER_SIZE, "{\"heater\":%i%c, \"target_temp\":%.1f}",
-      thermostat_config.heater_status, tstat_mode, target_temp);
-
-  LOG("Publishing %s to %s", msg, mqtt_config.tstat_status_topic);
-  mqttClient.publish(mqtt_config.tstat_status_topic, msg);
 }
 
 /**
@@ -139,9 +170,9 @@ void mqttKeepalive()
 {
   if (!mqttClient.connected())
   {
-    LOG("Connecting to %s:%d...", mqtt_config.server, mqtt_config.port);
+    LOG("Connecting to server...");
 
-    if (mqttClient.connect(node_config.name)) {
+    if (mqttClient.connect(node_name.c_str())) {
       LOG("Connection success.");
 
       // (re)subscribe to the required topics

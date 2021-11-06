@@ -1,7 +1,7 @@
 /*
  * TempSensor implementation
  */
-#include "TempSensor.h"
+#include "AmbientSensor.h"
 
 #ifdef HTU2X_TEMP_SENSOR
 #include <Wire.h>

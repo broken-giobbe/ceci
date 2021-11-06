@@ -92,7 +92,7 @@ void ui_task(void)
   display.drawLine(0, CHAR_HEIGHT, SCREEN_WIDTH-1, CHAR_HEIGHT, WHITE);
   display.setCursor(0, 0);
   display.setTextSize(1);
-  display.println(node_config.name);
+  display.println(node_name);
   display.setCursor((SCREEN_WIDTH - 4*CHAR_WIDTH), 0);
   display.write(' '); // ensure there's at least a space before the RSSI value
   display.println(String(WiFi.RSSI()));

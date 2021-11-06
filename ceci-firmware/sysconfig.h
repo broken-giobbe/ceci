@@ -72,10 +72,10 @@
  * Ambient sensor driver options
  */
 // Use the HTU2X temperature/humidity sensor
-//#define HTU2X_TEMP_SENSOR
+#define HTU2X_TEMP_SENSOR
 
 // Use the LM75 temperature sensor and set the I2C address
-#define LM75_TEMP_SENSOR
+//#define LM75_TEMP_SENSOR
 #define LM75_SENSOR_ADDRESS 0x4F
 
 // give the temperature sensor some rest between readings. Reduces self-heating.
@@ -89,5 +89,15 @@
  * Serial port baud rate
  */
 #define UART_BAUD_RATE 115200
+
+/*
+ * Default size in bytes for various text buffers. Set it big enough ;)
+ */
+#define TXT_BUF_SIZE 128
+
+/*
+ * Name for the node config file in the SPIFFS
+ */
+#define CONFIG_FILENAME "/config.ini"
 
 #endif
