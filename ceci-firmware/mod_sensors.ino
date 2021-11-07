@@ -24,17 +24,25 @@ static String sensors_topic = node_name + "/sensors";
 // Publish sensor readings using MQTT. NOTE: mqttClient has been initialized in ceci_firmware.ino
 void mod_sensors_publish(void)
 {
-  char msg[MQTT_BUFFER_SIZE];
+  String msg = "{";
   temperature_t temp = get_temperature();
   humidity_t hmdt = get_humidity();
+  //pressure_t
+  //quality_t
+  
+  // The JSON string to be published is built according to the sensor's capabilities
+  if (!temp.valid)
+    return; // at least the temperature should be valid otherwhise it makes no sense to publish anything
 
-  if (temp.valid) // We don't care about humidity since some sensors do not report it
-  {
-    snprintf(msg, MQTT_BUFFER_SIZE, "{\"temp\":%.1f,\"rhum\":%.1f}", temp.value, hmdt.value);
+  msg += "\"temp\":" + String(temp.value, 1);
 
-    LOG("Publishing %s to %s", msg, sensors_topic.c_str());
-    mqttClient.publish(sensors_topic.c_str(), msg, 1);
-  }
+  if (hmdt.valid)
+    msg += ", \"rhum\":" + String(hmdt.value, 1);
+
+  msg += "}";
+  
+  LOG("Publishing %s to %s", msg.c_str(), sensors_topic.c_str());
+  mqttClient.publish(sensors_topic.c_str(), msg.c_str(), 1);
 }
 
 void mod_sensors_init(SPIFFSIniFile* conf)
@@ -49,5 +57,5 @@ void mod_sensors_init(SPIFFSIniFile* conf)
 }
 
 #elif
-void mod_sensors_init(SPIFFSIniFile* conf){ // do nothing }
+void mod_sensors_init(SPIFFSIniFile* conf){ /* do nothing */ }
 #endif
