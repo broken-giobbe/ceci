@@ -102,6 +102,7 @@ void setup()
 
   // first of all we need a name
   node_name = conf_getStr(conf, "global", "node_name");
+  LOG("%s booting.", node_name.c_str());
   
   parse_config(conf);
   
@@ -116,9 +117,10 @@ void setup()
   }
 
   // Initialize MQTT
-  String mqtt_server = conf_getStr(conf, "global", "mqtt_Server");
-  int mqtt_port = 1883;
+  static String mqtt_server = conf_getStr(conf, "global", "mqtt_server");
+  static uint16_t mqtt_port = 1883;
   conf->getValue("global", "mqtt_port", buf, TXT_BUF_SIZE, mqtt_port);
+  LOG("MQTT server %s:%d", mqtt_server.c_str(), mqtt_port);
   
   mqttClient.setServer(mqtt_server.c_str(), mqtt_port);
   mqttClient.setCallback(mqttCallback);
