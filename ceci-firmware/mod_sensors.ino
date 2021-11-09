@@ -5,11 +5,11 @@
  * 
  * [mod_sensors]
  * publish_interval_sec=XX
- * publish_topic=topicname
+ * base_topic=topicname
  * 
- * The actual topic name is created by appending the node name to publish_topic.
- * Therefore, let's say that the node name is 'cece-test' and publish_topic=/sensors then, this module will publish sensor readings
- * every publish_interval_sec to '/cece-test/sensors'. The readings are published in JSON format to keep accurate time correlation between the different values.
+ * The actual topic name is created by appending the node name to base_topic.
+ * Therefore, let's say that the node name is 'cece-test' and base_topic=sensors/ then, this module will publish sensor readings
+ * every publish_interval_sec to 'sensors/cece-test'. The readings are published in JSON format to keep accurate time correlation between the different values.
  */
 
 #include "qd_sched.h"
@@ -19,7 +19,7 @@
 // Measurement interval in seconds (max 65535s). Default is 1 minute
 static uint16_t pub_interval_sec = 60;
 // Topic to publish sensor readings to
-static String sensors_topic = node_name + "/sensors";
+static String sensors_topic;
 
 // Publish sensor readings using MQTT. NOTE: mqttClient has been initialized in ceci_firmware.ino
 void mod_sensors_publish(void)
@@ -54,6 +54,7 @@ void mod_sensors_init(SPIFFSIniFile* conf)
   sensors_topic = conf_getStr(conf, "mod_sensors", "base_topic") + node_name;
 
   sched_put_task(&mod_sensors_publish, SECS_TO_MILLIS(pub_interval_sec), false);
+  LOG("Loaded mod_sensors.");
 }
 
 #elif

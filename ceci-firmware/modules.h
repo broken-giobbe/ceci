@@ -5,9 +5,15 @@
  */
 #ifndef MODULES_H
 #define MODULES_H
+
 /*
  * mod_sensors
  */
 void mod_sensors_init(SPIFFSIniFile* conf);
+
+/*
+ * mod_thermostat
+ */
+void mod_thermostat_init(SPIFFSIniFile* conf);
 
 #endif
