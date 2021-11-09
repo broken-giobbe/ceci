@@ -69,8 +69,6 @@ float conf_getFloat(SPIFFSIniFile* conf, const char* section, const char* key)
 
 void setup()
 {
-  char buf[TXT_BUF_SIZE]; // buffer for reading config variables
-  
   // initialize onboard LED as output and turn it on
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);

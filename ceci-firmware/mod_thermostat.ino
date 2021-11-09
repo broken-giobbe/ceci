@@ -46,7 +46,7 @@ void thermostatControlLoop(void)
 {
   temperature_t temp = get_temperature();
   
-  LOG("Temperature: %f valid: %s", temp.value, (temp.valid ? "true" : "false"));
+  LOG("Temperature: %.2f valid: %s", temp.value, (temp.valid ? "true" : "false"));
 
   if (!temp.valid)
     return; // Fail silently if the data is wrong
@@ -100,6 +100,6 @@ void mod_thermostat_init(SPIFFSIniFile* conf)
   LOG("Loaded mod_thermostat.");
 }
 
-#elif
+#else
 void mod_thermostat_init(SPIFFSIniFile* conf) { /* do nothing */ }
 #endif

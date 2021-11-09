@@ -56,6 +56,6 @@ void mod_sensors_init(SPIFFSIniFile* conf)
   LOG("Loaded mod_sensors.");
 }
 
-#elif
+#else
 void mod_sensors_init(SPIFFSIniFile* conf){ /* do nothing */ }
 #endif

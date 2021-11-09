@@ -58,7 +58,7 @@
  * 
  * If HAS_MOD_UI is defined the application will embed and load this module.
  */
-#define HAS_MOD_UI
+#undef HAS_MOD_UI
 
 // OLED Reset pin # (or -1 if sharing Arduino reset pin)
 #define OLED_RESET -1 

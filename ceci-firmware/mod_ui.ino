@@ -198,6 +198,6 @@ void mod_ui_init(void)
   LOG("Loaded mod_ui.");
 }
 
-#elif
+#else
 void mod_ui_init(void){ /* do nothing */ }
 #endif
