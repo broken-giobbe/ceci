@@ -1,5 +1,6 @@
 /**
  * Initialize MQTT PubSubClient and listen for MQTT events.
+ * (server address and port are set in config.ini)
  * 
  * Once an event is received it is routed to the appropriate callback.
  */
@@ -12,6 +13,13 @@
 
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
+
+// Rate in milliseconds at which the MQTT function loop() is called
+// used for keepalive and to react to subscriptions.
+#define MQTT_LOOP_RATE 1000
+
+// Size of the buffer for reading/sending MQTT messages
+#define MQTT_BUFFER_SIZE 64
 
 /*
  * Initialize MQTT

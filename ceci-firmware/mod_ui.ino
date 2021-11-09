@@ -1,4 +1,29 @@
-#include "UIDriver.h"
+/**
+ * User interface module.
+ * Responsible for handling and reacting to user interaction.
+ */
+#include "qd_sched.h"
+#include "modules.h"
+
+#ifdef HAS_MOD_UI
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+// rate at which the UI is updated
+#define UI_REFRESH_RATE_MS 50
+
+// This constant defines how long the gui should wait before going back to the home screen
+#define GO_BACK_HOME_MS 3000
+// Increment/decrement amount for target temperature
+#define TEMP_INCDEC 0.5
+
+// OLED display contrast. Must be between 0 and 255
+#define SCREEN_CONTRAST 0x0F // 16
+
+#define CHAR_WIDTH  6 // width in pixels for a single char of size 1 (fixed)
+#define CHAR_HEIGHT 8 // height in pixels for a single char of size 1 (fixed)
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
@@ -47,32 +72,6 @@ switch_state_t btn_state_machine(switch_state_t state, int pin)
   }
 
   return newstate;
-}
-
-void ui_init(void)
-{
-  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
-    Serial.println(F("SSD1306 allocation failed"));
-    for(;;) yield(); // Don't proceed, loop forever
-  }
-  
-  // Set the contrast and clear the buffer
-  display.ssd1306_command(SSD1306_SETCONTRAST);
-  display.ssd1306_command(SCREEN_CONTRAST);
-  display.clearDisplay();
-
-  // Show loading text
-  display.setTextSize(2); // font twice as big
-  display.setTextColor(WHITE);
-  display.setCursor(0, 2*CHAR_HEIGHT);
-  display.println(F("Loading..."));
-  display.display();
-  //display.startscrollright(0x00, 0x0F);
-
-  // Set GPIOs
-  pinMode(UP_BUTTON_GPIO, INPUT_PULLUP);
-  pinMode(DN_BUTTON_GPIO, INPUT_PULLUP);
 }
 
 void ui_task(void)
@@ -168,3 +167,37 @@ void ui_task(void)
 
   display.display();
 }
+
+void mod_ui_init(void)
+{
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;) yield(); // Don't proceed, loop forever
+  }
+  
+  // Set the contrast and clear the buffer
+  display.ssd1306_command(SSD1306_SETCONTRAST);
+  display.ssd1306_command(SCREEN_CONTRAST);
+  display.clearDisplay();
+
+  // Show loading text
+  display.setTextSize(2); // font twice as big
+  display.setTextColor(WHITE);
+  display.setCursor(0, 2*CHAR_HEIGHT);
+  display.println(F("Loading..."));
+  display.display();
+  //display.startscrollright(0x00, 0x0F);
+
+  // Set GPIOs
+  pinMode(UP_BUTTON_GPIO, INPUT_PULLUP);
+  pinMode(DN_BUTTON_GPIO, INPUT_PULLUP);
+
+  // start UI task
+  sched_put_task(&ui_task, UI_REFRESH_RATE_MS, false);
+  LOG("Loaded mod_ui.");
+}
+
+#elif
+void mod_ui_init(void){ /* do nothing */ }
+#endif

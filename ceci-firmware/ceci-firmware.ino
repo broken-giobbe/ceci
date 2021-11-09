@@ -8,7 +8,6 @@
 #include "sysconfig.h"
 #include "MQTTdispatcher.h"
 #include "AmbientSensor.h"
-#include "UIDriver.h"
 #include "modules.h"
 
 // macros used to convert minutes to other stuff
@@ -84,33 +83,26 @@ void setup()
   Serial.begin(UART_BAUD_RATE);
   Serial.println("");
 
-  // Initialize UI & display, to start showing something during boot
-  ui_init();
-
   // read config.ini file from SPIFFS and initialize variables
   SPIFFSIniFile* conf = conf_openFile();
 
   // first of all we need a name
   node_name = conf_getStr(conf, "global", "node_name");
   LOG("%s booting.", node_name.c_str());
+
+  // Initialize UI & display, to start showing something during boot
+  mod_ui_init();
   
   // initialize the temperature sensor with the correct offset
   temp_sensor_init(conf_getFloat(conf, "global", "temp_offset"));
-
-  // Configure the heater relay output if needed
-/*  if (thermostat_config.heater_status != -1)
-  {
-    pinMode(HEATER_PORT, OUTPUT);
-    digitalWrite(HEATER_PORT, thermostat_config.heater_status);
-  }*/
 
   // Initialize MQTT
   mqtt_init(conf);
 
   // now that the drivers have been initialized the moules can be initialized too
-  sched_put_task(&ui_task, UI_REFRESH_RATE_MS, false); // TODO: UI as a module
   mod_thermostat_init(conf);
   mod_sensors_init(conf);
+  //mod_relay_init(conf);
   
   // Last but not least wifi conenction parameters
   String ssid = conf_getStr(conf, "global", "wifi_ssid");

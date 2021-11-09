@@ -22,7 +22,8 @@
  *  Below those drivers are the specific Arduino libraries/drivers for each component.
  *  
  *  The high-level options of the drivers, such as what is connected where is configured here, more in-depth stuff is configured in the
- *  header file for each driver.
+ *  header file for each driver. Config variables here are updated when the hardware changes.
+ *  Configuration variables related to actual behaviour, not dependent on the hardware go inside their relative source files.
  */
 
 #ifndef SYSCONFIG_H
@@ -59,14 +60,20 @@
  */
 #define HAS_MOD_UI
 
-/**
- * MQTT config options (server address are set in config.ini)
- */
-// Rate in milliseconds at which the MQTT function loop() is called
-// used for keepalive and to react to subscriptions.
-#define MQTT_LOOP_RATE 1000
-// Size of the buffer for reading/sending MQTT messages
-#define MQTT_BUFFER_SIZE 64
+// OLED Reset pin # (or -1 if sharing Arduino reset pin)
+#define OLED_RESET -1 
+
+// Which pin is the UP button attached to?
+#define UP_BUTTON_GPIO D5
+
+// Which pin is the DOWN button attached to?
+#define DN_BUTTON_GPIO D3
+
+ // OLED display width, in pixels
+#define SCREEN_WIDTH  128
+
+ // OLED display height, in pixels
+#define SCREEN_HEIGHT 64
 
 /**
  * Ambient sensor driver options
