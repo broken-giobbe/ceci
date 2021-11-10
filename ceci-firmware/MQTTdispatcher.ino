@@ -44,24 +44,15 @@ void mqttCallback(const char* topic, byte* payload, unsigned int length)
 
   switch (topic[0]) {
     case 'e': // enable
-      /*if(thermostat_config.heater_status != -1) {
-        thermostat_config.heater_status = atoi(payloadStr);
-        digitalWrite(HEATER_PORT, thermostat_config.heater_status);
-      }*/
+    
       break;
 
     case 'm': // mode
-      if ((payloadStr[0] == 'A') || (payloadStr[0] == 'M')) {
-//        tstat_mode = payloadStr[0];
-        // Make sure the thermostat control loop is run next
-        sched_reschedule_taskID(sched_get_taskID(&thermostatControlLoop), 0);
-      }
+
       break;
     
     case 't': // target_temp
-//      target_temp = fmaxf(0.0, strtof(payloadStr, NULL));
-      // Make sure the thermostat control loop is run next
-      sched_reschedule_taskID(sched_get_taskID(&thermostatControlLoop), 0);
+
       break;
 
     default:

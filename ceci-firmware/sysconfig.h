@@ -41,7 +41,7 @@
  * 
  * If HAS_MOD_THERMOSTAT is defined the application will embed and load this module.
  */
-#define HAS_MOD_THERMOSTAT
+//#define HAS_MOD_THERMOSTAT
 
 /**
  * Config for mod_relay.
@@ -58,7 +58,7 @@
  * 
  * If HAS_MOD_UI is defined the application will embed and load this module.
  */
-#undef HAS_MOD_UI
+//#define HAS_MOD_UI
 
 // OLED Reset pin # (or -1 if sharing Arduino reset pin)
 #define OLED_RESET -1 
@@ -85,12 +85,12 @@
 //#define LM75_TEMP_SENSOR
 #define LM75_SENSOR_ADDRESS 0x4F
 
-// give the temperature sensor some rest between readings. Reduces self-heating.
-// If two humidity/temperature requests are made within this interval the old value is returned instead
-#define MIN_SAMPLE_INTERVAL_MS 1000UL
-
 // The precision used to return temperature and humidity readings
+#ifdef LM75_TEMP_SENSOR
 #define SENSOR_PRECISION 0.5
+#else
+#define SENSOR_PRECISION 0.1
+#endif
 
 /*
  * Serial port baud rate
