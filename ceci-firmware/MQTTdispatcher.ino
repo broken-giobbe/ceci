@@ -85,8 +85,10 @@ void mqttCallback(const char* topic, byte* payload, size_t len)
 
   for (size_t i = 0; i < DISPATCH_TABLE_SIZE; i++)
   {
-    if ((dispatchTable[i].cb_func != 0) && (dispatchTable[i].topic == topicStr))
+    if ((dispatchTable[i].cb_func != 0) && (dispatchTable[i].topic == topicStr)) {
       (*dispatchTable[i].cb_func)(payload, len);
+      return; // only one topic is matched at a time, there's no need to continue looping
+    }
   }
 }
 

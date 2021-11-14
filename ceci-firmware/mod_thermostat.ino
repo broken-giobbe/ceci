@@ -47,21 +47,27 @@ String status_topic;
  */
 void thermostatControlLoop(void)
 {
+  // I know it's ugly but the thermostat has to keep some state
+  static float old_target_temp = tstat_target;
+  static float final_temp = tstat_target;
+  static float anticipator_temp = 0;
+  
+  // Publish status
+  String stat = "{\"mode\":" + String(tstat_mode); 
+  stat +=      ", \"target_t\":" + String(tstat_target);
+  stat +=      ", \"final_t\":" + String(final_temp) + "}";
+  mqttClient.publish(status_topic.c_str(), stat.c_str());
+  
+  // Continue with the function only if the thermostat mode is set to auto ('A')
+  if (tstat_mode != 'A')
+    return;
+  
   temperature_t temp = get_temperature();
   
   LOG("Temperature: %.2f valid: %s", temp.value, (temp.valid ? "true" : "false"));
 
   if (!temp.valid)
     return; // Fail silently if the data is wrong
-  
-  // Continue with the function only if the thermostat mode is set to auto ('A')
-  if (tstat_mode != 'A')
-    return;
-
-  // I know it's ugly but the thermostat has to keep some state
-  static float old_target_temp = tstat_target;
-  static float final_temp = tstat_target;
-  static float anticipator_temp = 0;
 
   // if target temperature has changed reset the state
   if (old_target_temp != tstat_target) {
@@ -88,9 +94,25 @@ void thermostatControlLoop(void)
 /**
  * Callbacks for MQTT messages
  */
-void dummy_cb(byte* payload, size_t len)
+void mode_cb(byte* payload, size_t len)
 {
-  LOG("Got: %.*s", len, payload);
+  if (len < 1) return;
+  tstat_mode = payload[0]; // ignore the rest
+
+  // reschedule thermostat control loop to run immediately
+  sched_reschedule_taskID(sched_get_taskID(&thermostatControlLoop), 0);
+}
+
+void target_temp_cb(byte* payload, size_t len)
+{
+  if (len < 3) return; // "0.0" Ok "20" not ok
+  
+  char buf[len + 1] = {0};
+  memcpy(buf, payload, len);
+  tstat_target = atof(buf);
+
+  // reschedule thermostat control loop to run immediately
+  sched_reschedule_taskID(sched_get_taskID(&thermostatControlLoop), 0);
 }
 
 void mod_thermostat_init(SPIFFSIniFile* conf)
@@ -108,8 +130,8 @@ void mod_thermostat_init(SPIFFSIniFile* conf)
   
   String mode_topic        = base_topic + node_name + "/set_mode";
   String target_temp_topic = base_topic + node_name + "/target_temperature";
-  mqtt_register_cb(mode_topic, &dummy_cb);
-  mqtt_register_cb(target_temp_topic, &dummy_cb);
+  mqtt_register_cb(mode_topic, &mode_cb);
+  mqtt_register_cb(target_temp_topic, &target_temp_cb);
   
   sched_put_task(&thermostatControlLoop, SECS_TO_MILLIS(tstat_sample_interval_sec), true);
   LOG("Loaded mod_thermostat.");
