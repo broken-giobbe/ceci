@@ -21,19 +21,24 @@ PubSubClient mqttClient(wifiClient);
 // Size of the buffer for reading/sending MQTT messages
 #define MQTT_BUFFER_SIZE 64
 
+// Maximum size for the dispatch table
+#define DISPATCH_TABLE_SIZE 5
+
 /*
  * Initialize MQTT
  */
 void mqtt_init(SPIFFSIniFile* conf);
 
 /*
- * Subscrive to a certain topic and register a callback for it
+ * Subscrive to a certain topic and register a callback for it.
+ * 
+ * Returns a value >=0 on success, -1 otherwise
  */
-void mqtt_register_cb(const char* topic, void* cb);
+int mqtt_register_cb(String topic, void (*cb_func)(byte*, size_t));
 
 /*
  * Unsubscrive to a certain topic and unregister its callback
  */
-void mqtt_unregister_cb(const char* topic);
+void mqtt_unregister_cb(String topic);
 
 #endif

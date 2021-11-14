@@ -20,6 +20,7 @@
  *  heating/cece-test/decision -> 1 if the heater must be turned on, 0 if turned off
  */
 #include "qd_sched.h"
+#include "MQTTdispatcher.h"
 #include "modules.h"
 
 #ifdef HAS_MOD_THERMOSTAT
@@ -36,8 +37,10 @@ static float tstat_hysteresis = 0.5;
 // Measurement interval in seconds (max 65535s). Default is 1 minute
 static uint16_t tstat_sample_interval_sec = 60;
 
-// MQTT topics
-String mode_topic, target_temp_topic, status_topic, decision_topic;
+// MQTT topic used for publishing thermostat decision
+String decision_topic;
+// MQTT topic used for publishing thermostat status information
+String status_topic;
 
 /*
  * Get a temperature (&humidity) reading and compute the thermostat output if needed
@@ -82,6 +85,14 @@ void thermostatControlLoop(void)
   }
 }
 
+/**
+ * Callbacks for MQTT messages
+ */
+void dummy_cb(byte* payload, size_t len)
+{
+  LOG("Got: %.*s", len, payload);
+}
+
 void mod_thermostat_init(SPIFFSIniFile* conf)
 {
   char buf[TXT_BUF_SIZE]; // buffer for reading config file
@@ -91,10 +102,14 @@ void mod_thermostat_init(SPIFFSIniFile* conf)
   conf->getValue("mod_thermostat", "anticipator", buf, TXT_BUF_SIZE, tstat_anticipator);
 
   String base_topic = conf_getStr(conf, "mod_thermostat", "base_topic");
-  mode_topic = base_topic + node_name + "/set_mode";
-  target_temp_topic = base_topic + node_name + "/target_temperature";
-  status_topic = base_topic + node_name + "/status";
+
   decision_topic = base_topic + node_name + "/decision";
+  status_topic   = base_topic + node_name + "/status";
+  
+  String mode_topic        = base_topic + node_name + "/set_mode";
+  String target_temp_topic = base_topic + node_name + "/target_temperature";
+  mqtt_register_cb(mode_topic, &dummy_cb);
+  mqtt_register_cb(target_temp_topic, &dummy_cb);
   
   sched_put_task(&thermostatControlLoop, SECS_TO_MILLIS(tstat_sample_interval_sec), true);
   LOG("Loaded mod_thermostat.");

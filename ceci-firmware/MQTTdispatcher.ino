@@ -1,6 +1,22 @@
 #include "MQTTdispatcher.h"
 
 /**
+ * This structure represents a topic-callback association.
+ */
+struct dispatch_table_t {
+  String topic;  // string containing the topic name the callback refers to
+  void (*cb_func)(byte*, size_t); // callback function: byte* is for the payload, size_t for the size of received data
+}dispatchTable[DISPATCH_TABLE_SIZE] = {"", 0};
+
+/**
+ * Since the topics to subscribe to can change at any time, we keep track wether we should
+ * (re)subscribe to the topics in the dispatch_table by means of this variable.
+ * 
+ * Set to true to force subscribe on first run.
+ */
+bool needs_resubscribe = true;
+
+/**
  * MQTT utility function to (re)connect to the broker and to perform all the housekeeping stuff
  * for MQTT to work correctly
  */
@@ -12,51 +28,65 @@ void mqttKeepalive()
 
     if (mqttClient.connect(node_name.c_str())) {
       LOG("Connection success.");
-
-      // (re)subscribe to the required topics
-//      mqttClient.subscribe(mqtt_config.tstat_enable_topic);
-//      mqttClient.subscribe(mqtt_config.tstat_mode_topic);
-//      mqttClient.subscribe(mqtt_config.tstat_target_topic);
+      needs_resubscribe = true; // Upon connection to the server we always need to resubscribe
     } else {
       LOG("Connection failed: rc=%d", mqttClient.state());
+      return; // retry next time, there's no point in continuing
     }
   }
 
+  if(needs_resubscribe == true)
+  {
+    mqttClient.unsubscribe("#");
+    
+    for (size_t i = 0; i < DISPATCH_TABLE_SIZE; i++)
+    {
+      if(dispatchTable[i].cb_func != 0) {
+        mqttClient.subscribe(dispatchTable[i].topic.c_str());
+        LOG("Subscribed to: %s", dispatchTable[i].topic.c_str());
+      }
+    }
+    
+    needs_resubscribe = false;
+  }
+ 
   mqttClient.loop();
+}
+
+int mqtt_register_cb(String topic, void (*cb_func)(byte*, size_t))
+{
+  size_t emptyIdx = 0;
+  
+  // search for the first empty entry in the dispatch table
+  while(dispatchTable[emptyIdx].cb_func != 0)
+  {
+    emptyIdx++;
+    if(emptyIdx == DISPATCH_TABLE_SIZE)
+      return -1;
+  }
+
+  dispatchTable[emptyIdx].topic = topic;
+  dispatchTable[emptyIdx].cb_func = cb_func;
+  needs_resubscribe = true;
+  return emptyIdx;
 }
 
 /**
  * MQTT callback receiving data about the topics we have subscribed to.
  * Parameters:
  *   topic const char[] - the topic the message arrived on
- *   payload byte[] - the message payload
- *   length unsigned int - the length of the message payload
+ *   payload byte[]     - the message payload
+ *   length size_t      - the length of the message payload
  */
-void mqttCallback(const char* topic, byte* payload, unsigned int length)
+void mqttCallback(const char* topic, byte* payload, size_t len)
 {
-  char payloadStr[length + 1]; // +1 for null terminator char
-  snprintf(payloadStr, length+1, "%s", payload);
+  String topicStr = topic;
+  LOG("Received %s -> %.*s", topic, len, payload);
 
-  // keep only the last part of the topic, the rest does not give us any info
-  topic = strrchr(topic, '/') + 1;
-
-  LOG("Received %s -> %s", topic, payloadStr);
-
-  switch (topic[0]) {
-    case 'e': // enable
-    
-      break;
-
-    case 'm': // mode
-
-      break;
-    
-    case 't': // target_temp
-
-      break;
-
-    default:
-      ; /* do nothing */
+  for (size_t i = 0; i < DISPATCH_TABLE_SIZE; i++)
+  {
+    if ((dispatchTable[i].cb_func != 0) && (dispatchTable[i].topic == topicStr))
+      (*dispatchTable[i].cb_func)(payload, len);
   }
 }
 
