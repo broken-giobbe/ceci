@@ -25,11 +25,6 @@
 
 #ifdef HAS_MOD_THERMOSTAT
 
-// The current mode the thermostat is in: 'A' - auto, 'M' - manual
-static char tstat_mode = 'M';
-// the target temperature to be reached
-static float tstat_target = 0.0;
-
 // anticipator setting
 static float tstat_anticipator = 0.005;
 // hysteresis setting
@@ -43,50 +38,49 @@ String decision_topic;
 String status_topic;
 
 /*
+ * Struct for keeping thermostat state variables
+ */
+struct thermostat_state_t {
+  char  mode;        // The current mode the thermostat is in: 'A' - auto, 'M' - manual
+  float target_temp; // The target temperature to be reached
+  float final_temp;  // Temperature to be reached for the output state to change
+  float anticipator_temp; // Temperature offset due to the anticipator
+};
+static struct thermostat_state_t state = { .mode = 'M',
+                                           .target_temp = 0.0,
+                                           .final_temp = 0.0,
+                                           .anticipator_temp = 0.0};
+
+/*
  * Get a temperature (&humidity) reading and compute the thermostat output if needed
  */
 void thermostatControlLoop(void)
 {
-  // I know it's ugly but the thermostat has to keep some state
-  static float old_target_temp = tstat_target;
-  static float final_temp = tstat_target;
-  static float anticipator_temp = 0;
-  
   // Publish status
-  String stat = "{\"mode\":" + String(tstat_mode); 
-  stat +=      ", \"target_t\":" + String(tstat_target);
-  stat +=      ", \"final_t\":" + String(final_temp) + "}";
+  String stat = "{\"mode\":\"" + String(state.mode) + "\", ";
+  stat +=        "\"target_t\":" + String(state.target_temp) + ", ";
+  stat +=        "\"final_t\":" + String(state.final_temp) + "}";
   mqttClient.publish(status_topic.c_str(), stat.c_str());
   
   // Continue with the function only if the thermostat mode is set to auto ('A')
-  if (tstat_mode != 'A')
+  if (state.mode != 'A')
     return;
   
   temperature_t temp = get_temperature();
-  
   LOG("Temperature: %.2f valid: %s", temp.value, (temp.valid ? "true" : "false"));
 
   if (!temp.valid)
     return; // Fail silently if the data is wrong
-
-  // if target temperature has changed reset the state
-  if (old_target_temp != tstat_target) {
-    final_temp = tstat_target;
-    anticipator_temp = 0;
-    old_target_temp = tstat_target;
-  }
-
-  LOG("final_temp = %f", final_temp);
   
-  if (temp.value < final_temp) // actual temp is lower than expected -> heat up
+  if (temp.value < state.final_temp) // actual temp is lower than expected -> heat up
   {
-    anticipator_temp += tstat_anticipator;
-    final_temp = tstat_target + tstat_hysteresis - anticipator_temp;
+    state.anticipator_temp += tstat_anticipator;
+    state.final_temp = state.target_temp + tstat_hysteresis - state.anticipator_temp;
     mqttClient.publish(decision_topic.c_str(), "1");
   } else {
-    anticipator_temp -= tstat_anticipator;
-    anticipator_temp = fmaxf(0, anticipator_temp);
-    final_temp = tstat_target - tstat_hysteresis - anticipator_temp;
+    state.anticipator_temp -= tstat_anticipator;
+    state.anticipator_temp = fmaxf(0, state.anticipator_temp);
+    state.final_temp = state.target_temp - tstat_hysteresis - state.anticipator_temp;
     mqttClient.publish(decision_topic.c_str(), "0");
   }
 }
@@ -97,8 +91,11 @@ void thermostatControlLoop(void)
 void mode_cb(byte* payload, size_t len)
 {
   if (len < 1) return;
-  tstat_mode = payload[0]; // ignore the rest
-
+  
+  state.mode = payload[0]; // ignore the rest
+  state.final_temp = state.target_temp;
+  state.anticipator_temp = 0.0;
+  
   // reschedule thermostat control loop to run immediately
   sched_reschedule_taskID(sched_get_taskID(&thermostatControlLoop), 0);
 }
@@ -109,8 +106,10 @@ void target_temp_cb(byte* payload, size_t len)
   
   char buf[len + 1] = {0};
   memcpy(buf, payload, len);
-  tstat_target = atof(buf);
-
+  state.target_temp = atof(buf);
+  state.final_temp = state.target_temp;
+  state.anticipator_temp = 0.0;
+  
   // reschedule thermostat control loop to run immediately
   sched_reschedule_taskID(sched_get_taskID(&thermostatControlLoop), 0);
 }
