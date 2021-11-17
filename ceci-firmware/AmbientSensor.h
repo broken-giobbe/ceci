@@ -25,15 +25,17 @@
 #define SENSOR_NOWAKE ULONG_MAX
 
 /*
- * Datatype for temperature & humidity readings.
+ * Datatype for sensor readings.
  * If valid is false the value is unreliable and should be discarded
  */
-struct temperature_t {
+struct sensor_reading_t {
   float value;
   bool valid;
 };
-typedef struct temperature_t temperature_t;
-typedef struct temperature_t humidity_t;
+typedef struct sensor_reading_t temperature_t;
+typedef struct sensor_reading_t humidity_t;
+typedef struct sensor_reading_t pressure_t;
+typedef struct sensor_reading_t air_quality_t;
 
 /*
  * Initialize the sensor, providing an offset to correct temperature readings
@@ -41,7 +43,7 @@ typedef struct temperature_t humidity_t;
 void temp_sensor_init(float offset);
 
 /*
- * Get the most recent temperature reading
+ * Get the most recent temperature reading, not older than timelimit_ms
  */
 temperature_t get_temperature(unsigned long timelimit_ms = SENSOR_MOST_RECENT);
 
@@ -49,5 +51,15 @@ temperature_t get_temperature(unsigned long timelimit_ms = SENSOR_MOST_RECENT);
  * Get the most recent humidity reading, not older than timelimit_ms
  */
 humidity_t get_humidity(unsigned long timelimit_ms = SENSOR_MOST_RECENT);
+
+/*
+ * Get the most recent ambient pressure reading, not older than timelimit_ms
+ */
+pressure_t get_pressure(unsigned long timelimit_ms = SENSOR_MOST_RECENT);
+
+/*
+ * Get the most recent air quality reading, not older than timelimit_ms
+ */
+air_quality_t get_air_quality(unsigned long timelimit_ms = SENSOR_MOST_RECENT);
 
 #endif

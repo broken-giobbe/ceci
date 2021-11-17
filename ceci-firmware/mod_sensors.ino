@@ -26,8 +26,8 @@ void mod_sensors_publish(void)
   String msg = "{";
   temperature_t temp = get_temperature();
   humidity_t hmdt = get_humidity();
-  //pressure_t
-  //quality_t
+  pressure_t pres = get_pressure();
+  air_quality_t qual = get_air_quality();
   
   // The JSON string to be published is built according to the sensor's capabilities
   if (!temp.valid)
@@ -38,6 +38,12 @@ void mod_sensors_publish(void)
   if (hmdt.valid)
     msg += ", \"rhum\":" + String(hmdt.value, 1);
 
+   if (pres.valid)
+    msg += ", \"pressure\":" + String(pres.value, 1);
+  
+  if (qual.valid)
+    msg += ", \"quality\":" + String(qual.value, 1);
+  
   msg += "}";
   
   LOG("Publishing %s to %s", msg.c_str(), sensors_topic.c_str());
