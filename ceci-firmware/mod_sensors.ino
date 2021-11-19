@@ -35,14 +35,11 @@ void mod_sensors_publish(void)
 
   msg += "\"temp\":" + String(temp.value, 1);
 
-  if (hmdt.valid)
-    msg += ", \"rhum\":" + String(hmdt.value, 1);
+  if (hmdt.valid) msg += ", \"rhum\":" + String(hmdt.value, 1);
 
-   if (pres.valid)
-    msg += ", \"pressure\":" + String(pres.value, 1);
+  if (pres.valid) msg += ", \"pres\":" + String(pres.value, 1);
   
-  if (qual.valid)
-    msg += ", \"quality\":" + String(qual.value, 1);
+  if (qual.valid) msg += ", \"qual\":" + String(qual.value, 1);
   
   msg += "}";
   
