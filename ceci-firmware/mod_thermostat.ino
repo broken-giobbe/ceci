@@ -72,7 +72,7 @@ void thermostatControlLoop(void)
   if (!temp.valid)
     return; // Fail silently if the data is wrong
   
-  if (temp.value < state.final_temp) // actual temp is lower than expected -> heat up
+  if (temp.value <= state.final_temp) // actual temp is lower than expected -> heat up
   {
     state.anticipator_temp += tstat_anticipator;
     state.final_temp = state.target_temp + tstat_hysteresis - state.anticipator_temp;

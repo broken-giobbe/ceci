@@ -117,6 +117,8 @@ static Adafruit_BME680 bme; // I2C, with default address
 
 void temp_sensor_init(float offset)
 {
+  temp_offset = offset;
+    
   bme.begin();
   // Set up oversampling and filter initialization
   bme.setTemperatureOversampling(BME680_OS_4X);

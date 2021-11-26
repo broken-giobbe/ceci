@@ -41,14 +41,14 @@
  * 
  * If HAS_MOD_THERMOSTAT is defined the application will embed and load this module.
  */
-#define HAS_MOD_THERMOSTAT
+//#define HAS_MOD_THERMOSTAT
 
 /**
  * Config for mod_relay.
  * 
  * If HAS_MOD_RELAY is defined the application will embed and load this module.
  */
-#define HAS_MOD_RELAY
+//#define HAS_MOD_RELAY
 
 // Port where the heating control realy is connected
 #define HEATER_PORT D7

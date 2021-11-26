@@ -55,7 +55,7 @@ void mod_sensors_init(SPIFFSIniFile* conf)
   conf->getValue("mod_sensors", "pub_interval_sec", buf, TXT_BUF_SIZE, pub_interval_sec);
   sensors_topic = conf_getStr(conf, "mod_sensors", "base_topic") + node_name;
 
-  sched_put_task(&mod_sensors_publish, SECS_TO_MILLIS(pub_interval_sec), false);
+  sched_put_task(&mod_sensors_publish, SECS_TO_MILLIS(pub_interval_sec), true);
   LOG("Loaded mod_sensors.");
 }
 
