@@ -125,13 +125,13 @@ void temp_sensor_init(float offset)
   bme.setHumidityOversampling(BME680_OS_4X);
   bme.setPressureOversampling(BME680_OS_4X);
   bme.setIIRFilterSize(BME680_FILTER_SIZE_0);
-  bme.setODR(BME68X_ODR_NONE);
+  //bme.setODR(BME68X_ODR_NONE);
   bme.setGasHeater(320, 100);
 }
 
 void sensor_read()
 {
-  if (! bme.performReading()) {
+  if (!bme.performReading()) {
     last_temp.valid = false;
     last_hmdt.valid = false;
     last_pres.valid = false;

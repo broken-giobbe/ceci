@@ -30,9 +30,11 @@ void mod_sensors_publish(void)
   air_quality_t qual = get_air_quality();
   
   // The JSON string to be published is built according to the sensor's capabilities
-  if (!temp.valid)
+  if (!temp.valid) {
+    LOG("Measurement failed. Aborting.");
     return; // at least the temperature should be valid otherwhise it makes no sense to publish anything
-
+  }
+  
   msg += "\"temp\":" + String(temp.value, 1);
 
   if (hmdt.valid) msg += ", \"rhum\":" + String(hmdt.value, 1);
