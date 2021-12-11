@@ -28,7 +28,7 @@
  * SCHED_NUM_TASKS controls the maximum number of tasks that can be allocated.
  * If you try to allocate more than SCHED_NUM_TASKS your allocation will fail and the task will never be run.
  */
-#define SCHED_NUM_TASKS 4
+#define SCHED_NUM_TASKS 5
 
 /*
  * Enable or disable the usage of the builtin LED to signal that the scheduler is busy.

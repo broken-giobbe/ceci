@@ -33,9 +33,9 @@ static float tstat_hysteresis = 0.5;
 static uint16_t tstat_sample_interval_sec = 60;
 
 // MQTT topic used for publishing thermostat decision
-String decision_topic;
+static String decision_topic;
 // MQTT topic used for publishing thermostat status information
-String status_topic;
+static String status_topic;
 
 /*
  * Struct for keeping thermostat state variables

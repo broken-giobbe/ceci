@@ -48,9 +48,11 @@
  * 
  * If HAS_MOD_RELAY is defined the application will embed and load this module.
  */
-//#define HAS_MOD_RELAY
+#define HAS_MOD_RELAY
 
 // Port where the heating control realy is connected
+// D7 for hardware version 1.x
+// D8 for hardware version 2.x
 #define HEATER_PORT D7
 
 /**
@@ -94,11 +96,6 @@
 #else
 #define SENSOR_PRECISION 0.1
 #endif
-
-/*
- * Serial port baud rate
- */
-#define UART_BAUD_RATE 115200
 
 /*
  * Default size in bytes for various text buffers. Set it big enough ;)

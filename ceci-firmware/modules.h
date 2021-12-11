@@ -16,6 +16,11 @@ void mod_sensors_init(SPIFFSIniFile* conf);
  *****************/
 void mod_thermostat_init(SPIFFSIniFile* conf);
 
+/************
+ * mod_relay
+ ************/
+void mod_relay_init(SPIFFSIniFile* conf);
+
 /*********
  * mod_ui
  *********/
