@@ -6,6 +6,27 @@ static unsigned long entry_time;
 static unsigned long elapsed_time;
 // Tasks to run
 static task_t tasks[SCHED_NUM_TASKS] = {0};
+// Tasklets to run
+static rt_tasklet_t tasklets[SCHED_NUM_TASKLETS] = {0};
+
+int sched_put_rt_tasklet(void (*taskletFunction)(void*), void* param, unsigned long delayMillis)
+{
+   size_t emptyIdx = 0;
+  
+  // search for the first empty task entry within tasks
+  while(tasklets[emptyIdx].taskletFunc != 0)
+  {
+    emptyIdx++;
+    if(emptyIdx == SCHED_NUM_TASKLETS)
+      return -1;
+  }
+
+  tasklets[emptyIdx].taskletFunc = taskletFunction;
+  tasklets[emptyIdx].param = param;
+  tasklets[emptyIdx].reqMillis = millis();
+  tasklets[emptyIdx].delayMillis = delayMillis;
+  return emptyIdx;
+}
 
 int sched_put_task(void (*taskFunction)(void), unsigned long rate, bool run_immediately)
 {
@@ -64,24 +85,36 @@ void sched_reschedule_taskID(size_t id, unsigned long when)
    
 void loop()
 {
+#ifdef SCHED_USE_BLINKENLIGHT
+  digitalWrite(LED_BUILTIN, LOW);
+#endif
+
   entry_time = millis();
+
+  // tasklets have higher priority than tasks
+  for(size_t i = 0; i < SCHED_NUM_TASKLETS; i++)
+  {
+    if (tasklets[i].taskletFunc && (entry_time - tasklets[i].reqMillis) >= tasklets[i].delayMillis)
+    {
+      (*tasklets[i].taskletFunc)(tasklets[i].param);
+      tasklets[i].taskletFunc = NULL; // Once the tasklet is run forget about it
+    }
+  }
 
   for(size_t i = 0; i < SCHED_NUM_TASKS; i++)
   {
     if (tasks[i].taskFunc && (entry_time - tasks[i].lastRunMillis) >= tasks[i].rateMillis)
     {
-#ifdef SCHED_USE_BLINKENLIGHT
-      digitalWrite(LED_BUILTIN, LOW);
-#endif
       tasks[i].lastRunMillis = millis();
       (*tasks[i].taskFunc)();
-#ifdef SCHED_USE_BLINKENLIGHT
-      digitalWrite(LED_BUILTIN, HIGH);
-#endif
     }
   }
   
   elapsed_time = millis() - entry_time;
+
+#ifdef SCHED_USE_BLINKENLIGHT
+  digitalWrite(LED_BUILTIN, HIGH);
+#endif
   // sleep until the next full tick
   delay(SCHED_TICK_MS - (elapsed_time % SCHED_TICK_MS));
 }

@@ -34,7 +34,7 @@
  * 
  * If HAS_MOD_SENSORS is defined the application will embed and load this module.
  */
-#define HAS_MOD_SENSORS
+//#define HAS_MOD_SENSORS
 
 /**
  * Config for mod_thermostat.

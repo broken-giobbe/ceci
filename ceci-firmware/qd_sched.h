@@ -31,6 +31,12 @@
 #define SCHED_NUM_TASKS 5
 
 /*
+ * SCHED_NUM_TASKLETS controls the maximum number of rt_taskslets that can be allocated.
+ * If you try to allocate more than SCHED_NUM_TASKSLETS your allocation will fail and the tasklet will never be run.
+ */
+#define SCHED_NUM_TASKLETS 2
+
+/*
  * Enable or disable the usage of the builtin LED to signal that the scheduler is busy.
  * Warning: photosensitive epilepsy hazard
  */
@@ -38,11 +44,31 @@
 
 // Data structure describing a task
 struct task_t {
-  void (*taskFunc)(void); // the function to run
-  unsigned long rateMillis; // the rate in ms at which the task is run
+  void (*taskFunc)(void);      // the function to run
+  unsigned long rateMillis;    // the rate in ms at which the task is run
   unsigned long lastRunMillis; // last time in millis() the task has been run
 };
 typedef struct task_t task_t;
+
+// Data structure describing a realtime tasklet:
+// A simple function that is run once to perform a single task
+struct rt_tasklet_t {
+  void (*taskletFunc)(void*); // the function to run
+  void* param;                // pointer to the function parameters
+  unsigned long reqMillis;    // value of millis() corresponding to when the function was put here
+  unsigned long delayMillis;  // time to wait before the tasklet is run
+};
+typedef struct rt_tasklet_t rt_tasklet_t;
+
+/*
+ * Put a rt_tasklet in the scheduler
+ * 
+ * Parameters_
+ *  taskletFunction - pointer to the function to run
+ *  param           - parameters to pass to the tasklet function
+ *  delayMillis     - time to wait before launching the tasklet
+ */
+int sched_put_rt_tasklet(void (*taskletFunction)(void*), void* param, unsigned long delayMillis);
 
 /*
  * Put a task in the scheduler.

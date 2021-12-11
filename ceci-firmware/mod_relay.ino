@@ -1,6 +1,7 @@
 /*
  * 
  */
+#include "qd_sched.h"
 #include "MQTTdispatcher.h"
 #include "modules.h"
 
@@ -10,7 +11,7 @@
 static String relay_pub_topic;
 
 /**
- * Callbacks for MQTT messages
+ * Callback for MQTT messages
  */
 void relay_enable_cb(byte* payload, size_t len)
 {
@@ -20,15 +21,29 @@ void relay_enable_cb(byte* payload, size_t len)
   {
     case '0':
       digitalWrite(HEATER_PORT, LOW);
-      mqttClient.publish(relay_pub_topic.c_str(), "0");
+      sched_put_rt_tasklet(&relay_status_pub, (void*)"0", 0L);
       break;
     case '1':
       digitalWrite(HEATER_PORT, HIGH);
-      mqttClient.publish(relay_pub_topic.c_str(), "1");
+      sched_put_rt_tasklet(&relay_status_pub, (void*)"1", 0L);
       break;
     default:
       LOG("Invalid relay command received: %c", payload[0]);
   }
+}
+
+/*
+ * Tasklet to publish mqtt data
+ */
+void relay_status_pub(void* state)
+{
+  if(!mqttClient.connected())
+  {
+    sched_put_rt_tasklet(&relay_status_pub, state, 1000L); // retry in 1s
+    return;
+  }
+  
+  mqttClient.publish(relay_pub_topic.c_str(), (char*)state);
 }
 
 void mod_relay_init(SPIFFSIniFile* conf)
@@ -46,7 +61,7 @@ void mod_relay_init(SPIFFSIniFile* conf)
   mqtt_register_cb(relay_sub_topic, &relay_enable_cb);
   
   // Publish the first status, to tell that this node supports the relay
-  mqttClient.publish(relay_pub_topic.c_str(), "0");
+  sched_put_rt_tasklet(&relay_status_pub, (void*)"0", 0L);
   
   LOG("Loaded mod_relay.");
 }
