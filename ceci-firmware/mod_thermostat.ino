@@ -34,6 +34,8 @@ static uint16_t tstat_sample_interval_sec = 60;
 
 // MQTT topic used for publishing thermostat decision
 static String decision_topic;
+// MQTT message struct to send decision updates
+static mqtt_msg decision_msg;
 // MQTT topic used for publishing thermostat status information
 static String status_topic;
 
@@ -76,12 +78,14 @@ void thermostatControlLoop(void)
   {
     state.anticipator_temp += tstat_anticipator;
     state.final_temp = state.target_temp + tstat_hysteresis - state.anticipator_temp;
-    mqttClient.publish(decision_topic.c_str(), "1");
+    decision_msg.str_msg = "1";
+    mqtt_pub_in_tasklet(decision_msg);
   } else {
     state.anticipator_temp -= tstat_anticipator;
     state.anticipator_temp = fmaxf(0, state.anticipator_temp);
     state.final_temp = state.target_temp - tstat_hysteresis - state.anticipator_temp;
-    mqttClient.publish(decision_topic.c_str(), "0");
+    decision_msg.str_msg = "0";
+    mqtt_pub_in_tasklet(decision_msg);
   }
 }
 
@@ -92,12 +96,29 @@ void mode_cb(byte* payload, size_t len)
 {
   if (len < 1) return;
   
-  state.mode = payload[0]; // ignore the rest
-  state.final_temp = state.target_temp;
-  state.anticipator_temp = 0.0;
-  
-  // reschedule thermostat control loop to run immediately
-  sched_reschedule_taskID(sched_get_taskID(&thermostatControlLoop), 0);
+  switch(payload[0])
+  {
+    case '0':
+      state.mode = '0';
+      decision_msg.str_msg = "0";
+      mqtt_pub_in_tasklet(decision_msg);
+      break;
+    case '1':
+      state.mode = '1';
+      decision_msg.str_msg = "1";
+      mqtt_pub_in_tasklet(decision_msg);
+      break;
+    case 'A':
+      state.mode = 'A';
+      // reset state variables
+      state.final_temp = state.target_temp;
+      state.anticipator_temp = 0.0;
+      // reschedule thermostat control loop to run immediately
+      sched_reschedule_taskID(sched_get_taskID(&thermostatControlLoop), 0);
+      break;
+    default:
+      LOG("Invalid thermostat mode received: %c", payload[0]);
+  }
 }
 
 void target_temp_cb(byte* payload, size_t len)
@@ -125,6 +146,10 @@ void mod_thermostat_init(SPIFFSIniFile* conf)
   String base_topic = conf_getStr(conf, "mod_thermostat", "base_topic");
 
   decision_topic = base_topic + node_name + "/decision";
+  decision_msg.topic = decision_topic.c_str();
+  decision_msg.str_msg = "0";
+  decision_msg.retained = false;
+  
   status_topic   = base_topic + node_name + "/status";
   
   String mode_topic        = base_topic + node_name + "/set_mode";
@@ -133,6 +158,10 @@ void mod_thermostat_init(SPIFFSIniFile* conf)
   mqtt_register_cb(target_temp_topic, &target_temp_cb);
   
   sched_put_task(&thermostatControlLoop, SECS_TO_MILLIS(tstat_sample_interval_sec), true);
+  
+  // Publish the first decision, to tell that this node supports mod_thermostat
+  mqtt_pub_in_tasklet(decision_msg);
+  
   LOG("Loaded mod_thermostat.");
 }
 

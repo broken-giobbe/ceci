@@ -109,12 +109,11 @@ void loop()
       (*tasks[i].taskFunc)();
     }
   }
-  
-  elapsed_time = millis() - entry_time;
 
 #ifdef SCHED_USE_BLINKENLIGHT
   digitalWrite(LED_BUILTIN, HIGH);
 #endif
   // sleep until the next full tick
+  elapsed_time = millis() - entry_time;
   delay(SCHED_TICK_MS - (elapsed_time % SCHED_TICK_MS));
 }

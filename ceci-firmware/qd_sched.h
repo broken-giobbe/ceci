@@ -34,7 +34,7 @@
  * SCHED_NUM_TASKLETS controls the maximum number of rt_taskslets that can be allocated.
  * If you try to allocate more than SCHED_NUM_TASKSLETS your allocation will fail and the tasklet will never be run.
  */
-#define SCHED_NUM_TASKLETS 2
+#define SCHED_NUM_TASKLETS 3
 
 /*
  * Enable or disable the usage of the builtin LED to signal that the scheduler is busy.

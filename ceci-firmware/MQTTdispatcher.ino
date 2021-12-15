@@ -53,24 +53,6 @@ void mqttKeepalive()
   mqttClient.loop();
 }
 
-int mqtt_register_cb(String topic, void (*cb_func)(byte*, size_t))
-{
-  size_t emptyIdx = 0;
-  
-  // search for the first empty entry in the dispatch table
-  while(dispatchTable[emptyIdx].cb_func != 0)
-  {
-    emptyIdx++;
-    if(emptyIdx == DISPATCH_TABLE_SIZE)
-      return -1;
-  }
-
-  dispatchTable[emptyIdx].topic = topic;
-  dispatchTable[emptyIdx].cb_func = cb_func;
-  needs_resubscribe = true;
-  return emptyIdx;
-}
-
 /**
  * MQTT callback receiving data about the topics we have subscribed to.
  * Parameters:
@@ -90,6 +72,40 @@ void mqttCallback(const char* topic, byte* payload, size_t len)
       return; // only one topic is matched at a time, there's no need to continue looping
     }
   }
+}
+
+void mqtt_pub_tasklet_func(void* par)
+{
+  if (par == NULL) return;
+  
+  mqtt_msg msg = *((mqtt_msg*)par); // void* cannot be dereferenced
+  
+  if(!mqttClient.connected())
+  {
+    // retry in MQTT_LOOP_RATE to allow for reconnection
+    sched_put_rt_tasklet(&mqtt_pub_tasklet_func, par, MQTT_LOOP_RATE);
+    return;
+  }
+  
+  mqttClient.publish(msg.topic, msg.str_msg, msg.retained);
+}
+
+int mqtt_register_cb(String topic, void (*cb_func)(byte*, size_t))
+{
+  size_t emptyIdx = 0;
+  
+  // search for the first empty entry in the dispatch table
+  while(dispatchTable[emptyIdx].cb_func != 0)
+  {
+    emptyIdx++;
+    if(emptyIdx == DISPATCH_TABLE_SIZE)
+      return -1;
+  }
+
+  dispatchTable[emptyIdx].topic = topic;
+  dispatchTable[emptyIdx].cb_func = cb_func;
+  needs_resubscribe = true;
+  return emptyIdx;
 }
 
 void mqtt_init(SPIFFSIniFile* conf)

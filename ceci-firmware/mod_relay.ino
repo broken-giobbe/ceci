@@ -9,6 +9,8 @@
 
 // Topic to publish & receive relay status changes
 static String relay_pub_topic;
+// MQTT message struct to send relay status updates
+static mqtt_msg relay_msg;
 
 /**
  * Callback for MQTT messages
@@ -21,29 +23,17 @@ void relay_enable_cb(byte* payload, size_t len)
   {
     case '0':
       digitalWrite(HEATER_PORT, LOW);
-      sched_put_rt_tasklet(&relay_status_pub, (void*)"0", 0L);
+      relay_msg.str_msg = "0";
+      mqtt_pub_in_tasklet(relay_msg);
       break;
     case '1':
       digitalWrite(HEATER_PORT, HIGH);
-      sched_put_rt_tasklet(&relay_status_pub, (void*)"1", 0L);
+      relay_msg.str_msg = "1";
+      mqtt_pub_in_tasklet(relay_msg);
       break;
     default:
       LOG("Invalid relay command received: %c", payload[0]);
   }
-}
-
-/*
- * Tasklet to publish mqtt data
- */
-void relay_status_pub(void* state)
-{
-  if(!mqttClient.connected())
-  {
-    sched_put_rt_tasklet(&relay_status_pub, state, 1000L); // retry in 1s
-    return;
-  }
-  
-  mqttClient.publish(relay_pub_topic.c_str(), (char*)state);
 }
 
 void mod_relay_init(SPIFFSIniFile* conf)
@@ -55,13 +45,17 @@ void mod_relay_init(SPIFFSIniFile* conf)
   
   // This module needs the following config variables
   relay_topic = conf_getStr(conf, "mod_relay", "base_topic") + node_name;
-  relay_pub_topic = relay_topic + "/status";
   
   String relay_sub_topic = relay_topic + "/enable";
   mqtt_register_cb(relay_sub_topic, &relay_enable_cb);
   
+  relay_pub_topic = relay_topic + "/status";
+  relay_msg.topic = relay_pub_topic.c_str();
+  relay_msg.str_msg = "0";
+  relay_msg.retained = false;
+  
   // Publish the first status, to tell that this node supports the relay
-  sched_put_rt_tasklet(&relay_status_pub, (void*)"0", 0L);
+  mqtt_pub_in_tasklet(relay_msg);
   
   LOG("Loaded mod_relay.");
 }
