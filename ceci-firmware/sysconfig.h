@@ -34,7 +34,7 @@
  * 
  * If HAS_MOD_SENSORS is defined the application will embed and load this module.
  */
-//#define HAS_MOD_SENSORS
+#define HAS_MOD_SENSORS
 
 /**
  * Config for mod_thermostat.
@@ -48,7 +48,7 @@
  * 
  * If HAS_MOD_RELAY is defined the application will embed and load this module.
  */
-#define HAS_MOD_RELAY
+//#define HAS_MOD_RELAY
 
 // Port where the heating control realy is connected
 // D7 for hardware version 1.x
@@ -81,10 +81,10 @@
  * Ambient sensor driver options
  */
 // Use the Bosch BME680 temperature/humidity/pressure/gas sensor
-#define BME680_TEMP_SENSOR
+//#define BME680_TEMP_SENSOR
  
 // Use the HTU2X temperature/humidity sensor
-//#define HTU2X_TEMP_SENSOR
+#define HTU2X_TEMP_SENSOR
 
 // Use the LM75 temperature sensor and set the I2C address
 //#define LM75_TEMP_SENSOR

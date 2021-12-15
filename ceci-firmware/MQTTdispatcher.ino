@@ -87,7 +87,8 @@ void mqtt_pub_tasklet_func(void* par)
     return;
   }
   
-  mqttClient.publish(msg.topic, msg.str_msg, msg.retained);
+  if(!mqttClient.publish(msg.topic, msg.str_msg, msg.retained))
+    LOG("Publish failed: %s -> %s", msg.topic, msg.str_msg);
 }
 
 int mqtt_register_cb(String topic, void (*cb_func)(byte*, size_t))
