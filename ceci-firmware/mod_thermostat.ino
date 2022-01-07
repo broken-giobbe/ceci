@@ -36,8 +36,9 @@ static uint16_t tstat_sample_interval_sec = 60;
 static String decision_topic;
 // MQTT message struct to send decision updates
 static mqtt_msg decision_msg;
-// MQTT topic used for publishing thermostat status information
+// MQTT message struct to send thermostat status information in a tasklet
 static String status_topic;
+static mqtt_msg tstat_status_msg;
 
 /*
  * Struct for keeping thermostat state variables
@@ -58,11 +59,12 @@ static struct thermostat_state_t state = { .mode = 'M',
  */
 void thermostatControlLoop(void)
 {
-  // Publish status
-  String stat = "{\"mode\":\"" + String(state.mode) + "\", ";
-  stat +=        "\"target_t\":" + String(state.target_temp) + ", ";
-  stat +=        "\"final_t\":" + String(state.final_temp) + "}";
-  mqttClient.publish(status_topic.c_str(), stat.c_str());
+  // Publish status (stat is static to survive function invocation)
+  static char stat[TXT_BUF_SIZE];
+  snprintf(stat, TXT_BUF_SIZE, "{\"mode\":\"%c\", \"target_t\":%.2f, \"final_t\":%.2f}",
+                               state.mode, state.target_temp, state.final_temp);
+  tstat_status_msg.str_msg = stat;
+  mqtt_pub_in_tasklet(tstat_status_msg);
   
   // Continue with the function only if the thermostat mode is set to auto ('A')
   if (state.mode != 'A')
@@ -150,7 +152,9 @@ void mod_thermostat_init(SPIFFSIniFile* conf)
   decision_msg.str_msg = "0";
   decision_msg.retained = false;
   
-  status_topic   = base_topic + node_name + "/status";
+  status_topic = base_topic + node_name + "/status";
+  tstat_status_msg.topic = status_topic.c_str();
+  tstat_status_msg.retained = false;
   
   String mode_topic        = base_topic + node_name + "/set_mode";
   String target_temp_topic = base_topic + node_name + "/target_temperature";

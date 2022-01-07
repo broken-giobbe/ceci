@@ -1,5 +1,5 @@
 /*
- * TempSensor implementation
+ * AmbientSensor implementation
  */
 #include "AmbientSensor.h"
 
