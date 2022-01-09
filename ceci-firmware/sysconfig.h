@@ -41,7 +41,7 @@
  * 
  * If HAS_MOD_THERMOSTAT is defined the application will embed and load this module.
  */
-#define HAS_MOD_THERMOSTAT
+//#define HAS_MOD_THERMOSTAT
 
 /**
  * Config for mod_relay.
@@ -81,10 +81,10 @@
  * Ambient sensor driver options
  */
 // Use the Bosch BME680 temperature/humidity/pressure/gas sensor
-//#define BME680_TEMP_SENSOR
+#define BME680_TEMP_SENSOR
  
 // Use the HTU2X temperature/humidity sensor
-#define HTU2X_TEMP_SENSOR
+//#define HTU2X_TEMP_SENSOR
 
 // Use the LM75 temperature sensor and set the I2C address
 //#define LM75_TEMP_SENSOR
