@@ -31,7 +31,7 @@ static temperature_t last_temp = { .value = 0.0, .valid = false };
 static humidity_t last_hmdt = { .value = 0.0, .valid = false };
 // last temperature reading
 static pressure_t last_pres = { .value = 0.0, .valid = false };
-// last humidity reading
+// last air quality reading
 static air_quality_t last_qual = { .value = 0.0, .valid = false };
 
 // timestamp for the readings above
@@ -117,10 +117,17 @@ void sensor_read()
 
 #ifdef BME680_TEMP_SENSOR
 
-// This macro is used to convert from gas resistance to quality index
-#define GAS_RESISTANCE_TO_QUALITY(reading) (reading / 100.0)
-
 static Adafruit_BME680 bme; // I2C, with default address
+
+/*
+ * Since I'm not that interest in a standard quality metric, I'd rather
+ * have the sensor report an "index" capped at 100.0
+ * 
+ * To do so, an absolute maximum is kept for the sensor resistance readings and 
+ * the quality value is normalized to 100.0 taking this maximum into account.
+ * The maximum is given an initial meaningful value to speed up convergence.
+ */
+static float max_res_reading = 10e3;
 
 void temp_sensor_init(float offset)
 {
@@ -156,7 +163,8 @@ void sensor_read()
   last_pres.value = ROUND_TO_SENSOR_PRECISION(bme.pressure / 100.0);
   last_pres.valid = true;
 
-  last_qual.value = ROUND_TO_SENSOR_PRECISION(GAS_RESISTANCE_TO_QUALITY(bme.gas_resistance));
+  max_res_reading = fmax(max_res_reading, bme.gas_resistance);
+  last_qual.value = ROUND_TO_SENSOR_PRECISION((100.0 * bme.gas_resistance) / max_res_reading);
   last_qual.valid = true;
 }
 #endif
