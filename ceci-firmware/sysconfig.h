@@ -90,13 +90,6 @@
 //#define LM75_TEMP_SENSOR
 #define LM75_SENSOR_ADDRESS 0x4F
 
-// The precision used to return temperature and humidity readings
-#ifdef LM75_TEMP_SENSOR
-#define SENSOR_PRECISION 0.5
-#else
-#define SENSOR_PRECISION 0.1
-#endif
-
 /*
  * Default size in bytes for various text buffers. Set it big enough ;)
  */
