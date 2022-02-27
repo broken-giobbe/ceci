@@ -84,9 +84,8 @@ void thermostatControlLoop(void)
     mqtt_pub_in_tasklet(decision_msg);
   } else {
     // The anticipator cools down faster if the temperature is below target
-    // the smaller the hysteresis band, the faster we have to react -> faster cooldown rate
-    float cooldown_fact = fmaxf(1, (0.5/tstat_hysteresis)*(state.target_temp - temp.value));
-    state.anticipator_temp = fmaxf(0, state.anticipator_temp - (tstat_anticipator * cooldown_fact));
+    float cooldown_mult = 1.0 + state.target_temp - temp.value;
+    state.anticipator_temp = fmaxf(0, state.anticipator_temp - (tstat_anticipator * cooldown_mult));
     state.final_temp = state.target_temp - tstat_hysteresis - state.anticipator_temp;
     decision_msg.str_msg = "0";
     mqtt_pub_in_tasklet(decision_msg);

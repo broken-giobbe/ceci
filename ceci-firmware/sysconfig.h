@@ -41,7 +41,7 @@
  * 
  * If HAS_MOD_THERMOSTAT is defined the application will embed and load this module.
  */
-//#define HAS_MOD_THERMOSTAT
+#define HAS_MOD_THERMOSTAT
 
 /**
  * Config for mod_relay.
