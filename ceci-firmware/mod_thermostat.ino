@@ -13,7 +13,7 @@
  *  
  * The actual topic name is created by appending the node name to base_topic.
  * Therefore, let's say that the node name is 'cece-test' and base_topic=heating/ then, this module will listen to the folowing topics:
- *  heating/cece-test/set_mode           -> To turn the thermostat to always on, always off or auto
+ *  heating/cece-test/set_mode           -> To turn the thermostat into auto mode 'A', always on '1' or always off '0'
  *  heating/cece-test/target_temperature -> To set the target temperature for the room
  * This module will also publish to:
  *  heating/cece-test/status   -> Summary of thermostat status in json format (updated when data is received to the topics above)
@@ -44,15 +44,60 @@ static mqtt_msg tstat_status_msg;
  * Struct for keeping thermostat state variables
  */
 struct thermostat_state_t {
-  char  mode;        // The current mode the thermostat is in: 'A' - auto, 'M' - manual
+  char  mode;        // The current mode the thermostat is in: 'A' - auto, '0' - always off, '1' - always on
   float target_temp; // The target temperature to be reached
   float final_temp;  // Temperature to be reached for the output state to change
   float anticipator_temp; // Temperature offset due to the anticipator
 };
-static struct thermostat_state_t state = { .mode = 'M',
+static struct thermostat_state_t state = { .mode = '0',
                                            .target_temp = 0.0,
                                            .final_temp = 0.0,
                                            .anticipator_temp = 0.0};
+/*
+ * Getters and setters for the state variables above
+ */
+float thermostat_get_temp(void) { return state.target_temp; }
+char  thermostat_get_mode(void) { return state.mode; }
+
+void thermostat_set_temp(float temp)
+{
+  temp = fmaxf(0.0, temp);
+  temp = fminf(30.0, temp);
+  
+  state.target_temp = temp;
+  // also reset the control loop variables
+  state.final_temp = state.target_temp;
+  state.anticipator_temp = 0.0;
+  
+  // Since the parameters have changed, reschedule thermostat control loop to run immediately
+  sched_reschedule_taskID(sched_get_taskID(&thermostatControlLoop), 0);
+}
+
+void thermostat_set_mode(char mode_ch)
+{
+  if ((mode_ch != '0') || (mode_ch != '1') || (mode_ch != 'A'))
+    return;
+  
+  state.mode = mode_ch;
+  // also reset the state variables
+  state.final_temp = state.target_temp;
+  state.anticipator_temp = 0.0;
+  
+  if (mode_ch == '0')
+  {
+      decision_msg.str_msg = "0";
+      mqtt_pub_in_tasklet(decision_msg);
+  }
+
+  if (mode_ch == '1')
+  {
+    decision_msg.str_msg = "1";
+    mqtt_pub_in_tasklet(decision_msg);
+  }
+  
+  // reschedule thermostat control loop to run immediately (after the tasklets above, if any)
+  sched_reschedule_taskID(sched_get_taskID(&thermostatControlLoop), 0);
+}
 
 /*
  * Get a temperature (&humidity) reading and compute the thermostat output if needed
@@ -99,29 +144,8 @@ void mode_cb(byte* payload, size_t len)
 {
   if (len < 1) return;
   
-  switch(payload[0])
-  {
-    case '0':
-      state.mode = '0';
-      decision_msg.str_msg = "0";
-      mqtt_pub_in_tasklet(decision_msg);
-      break;
-    case '1':
-      state.mode = '1';
-      decision_msg.str_msg = "1";
-      mqtt_pub_in_tasklet(decision_msg);
-      break;
-    case 'A':
-      state.mode = 'A';
-      // reset state variables
-      state.final_temp = state.target_temp;
-      state.anticipator_temp = 0.0;
-      // reschedule thermostat control loop to run immediately
-      sched_reschedule_taskID(sched_get_taskID(&thermostatControlLoop), 0);
-      break;
-    default:
-      LOG("Invalid thermostat mode received: %c", payload[0]);
-  }
+  thermostat_set_mode(payload[0]);
+  LOG("New mode received: %c", payload[0]);
 }
 
 void target_temp_cb(byte* payload, size_t len)
@@ -130,12 +154,8 @@ void target_temp_cb(byte* payload, size_t len)
   
   char buf[len + 1] = {0};
   memcpy(buf, payload, len);
-  state.target_temp = atof(buf);
-  state.final_temp = state.target_temp;
-  state.anticipator_temp = 0.0;
-  
-  // reschedule thermostat control loop to run immediately
-  sched_reschedule_taskID(sched_get_taskID(&thermostatControlLoop), 0);
+  thermostat_set_temp(atof(buf));
+  LOG("New target temperature received: %s", buf);
 }
 
 void mod_thermostat_init(SPIFFSIniFile* conf)

@@ -8,7 +8,7 @@
  *                      Also uses MQTT to publish its output state
  *  - mod_relay      -> Enables or disables a relay depending on data received on its relative MQTT topic
  *  - mod_UI         -> Presents the users with a screen and buttons. It allows to present the sensor readings and control the thermostat using buttons.
- *                      I've yet to decide to make it configurable or set mod_thermostat as a hard requirement.
+ *                      Requires mod_thermostat to be of any use.
  * 
  * Once a module is enabled, its parameters are read from an .ini config file. Each section of the file corresponds to the module to be cofigured.
  * There is also a global section for the WiFi network parameters and any other config variable that affects all the modules.
@@ -60,7 +60,7 @@
  * 
  * If HAS_MOD_UI is defined the application will embed and load this module.
  */
-//#define HAS_MOD_UI
+#define HAS_MOD_UI
 
 // OLED Reset pin # (or -1 if sharing Arduino reset pin)
 #define OLED_RESET -1 
@@ -81,13 +81,13 @@
  * Ambient sensor driver options
  */
 // Use the Bosch BME680 temperature/humidity/pressure/gas sensor
-#define BME680_TEMP_SENSOR
+//#define BME680_TEMP_SENSOR
  
 // Use the HTU2X temperature/humidity sensor
 //#define HTU2X_TEMP_SENSOR
 
 // Use the LM75 temperature sensor and set the I2C address
-//#define LM75_TEMP_SENSOR
+#define LM75_TEMP_SENSOR
 #define LM75_SENSOR_ADDRESS 0x4F
 
 /*

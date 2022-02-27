@@ -16,6 +16,14 @@ void mod_sensors_init(SPIFFSIniFile* conf);
  *****************/
 void mod_thermostat_init(SPIFFSIniFile* conf);
 
+/*
+ * Getters and setters for thermostat parameters
+ */
+float thermostat_get_temp(void);
+void thermostat_set_temp(float);
+char thermostat_get_mode(void);
+void thermostat_set_mode(char);
+
 /************
  * mod_relay
  ************/
