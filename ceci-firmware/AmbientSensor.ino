@@ -127,7 +127,7 @@ static Adafruit_BME680 bme; // I2C, with default address
  * the quality value is normalized to 100.0 taking this maximum into account.
  * The maximum is given an initial meaningful value to speed up convergence.
  */
-static float max_res_reading = 10e3;
+static float max_res_reading = 5e3;
 
 void temp_sensor_init(float offset)
 {
@@ -163,7 +163,7 @@ void sensor_read()
   last_pres.value = ROUND_TO_SENSOR_PRECISION(bme.pressure / 100.0);
   last_pres.valid = true;
 
-  max_res_reading = fmax(max_res_reading, bme.gas_resistance);
+  max_res_reading = fmaxf(max_res_reading, bme.gas_resistance);
   last_qual.value = ROUND_TO_SENSOR_PRECISION((100.0 * bme.gas_resistance) / max_res_reading);
   last_qual.valid = true;
 }
