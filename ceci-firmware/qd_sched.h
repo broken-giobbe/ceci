@@ -22,7 +22,7 @@
  * The less frequent the ticks (the higher SCHED_TICKS_MS) te more time is spent sleeping,
  * at the expense of scheduling accuracy.
  */
-#define SCHED_TICK_MS 100
+#define SCHED_TICK_MS 50
 
 /* 
  * SCHED_NUM_TASKS controls the maximum number of tasks that can be allocated.

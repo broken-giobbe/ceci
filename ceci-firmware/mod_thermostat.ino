@@ -50,8 +50,8 @@ struct thermostat_state_t {
   float anticipator_temp; // Temperature offset due to the anticipator
 };
 static struct thermostat_state_t state = { .mode = '0',
-                                           .target_temp = 0.0,
-                                           .final_temp = 0.0,
+                                           .target_temp = 15.0,
+                                           .final_temp = 15.0,
                                            .anticipator_temp = 0.0};
 /*
  * Getters and setters for the state variables above
@@ -75,8 +75,11 @@ void thermostat_set_temp(float temp)
 
 void thermostat_set_mode(char mode_ch)
 {
-  if ((mode_ch != '0') || (mode_ch != '1') || (mode_ch != 'A'))
+  if ((mode_ch != '0') && (mode_ch != '1') && (mode_ch != 'A'))
+  {
+    LOG("Invalid mode received: '%c'. Expected: A|0|1.");
     return;
+  }
   
   state.mode = mode_ch;
   // also reset the state variables
