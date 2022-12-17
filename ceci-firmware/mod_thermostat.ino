@@ -77,7 +77,7 @@ void thermostat_set_mode(char mode_ch)
 {
   if ((mode_ch != '0') && (mode_ch != '1') && (mode_ch != 'A'))
   {
-    LOG("Invalid mode received: '%c'. Expected: A|0|1.");
+    LOG("Invalid mode received: '%c'. Expected: A|0|1.", mode_ch);
     return;
   }
   

@@ -63,7 +63,7 @@
 #define HAS_MOD_UI
 
 // OLED Reset pin # (or -1 if sharing Arduino reset pin)
-#define OLED_RESET -1 
+#define OLED_RESET -1
 
 // Which pin is the UP button attached to?
 #define UP_BUTTON_GPIO D5

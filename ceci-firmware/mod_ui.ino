@@ -207,7 +207,7 @@ void mod_ui_init(void)
   pinMode(DN_BUTTON_GPIO, INPUT_PULLUP);
 
   // start UI task
-  sched_put_task(&ui_task, UI_REFRESH_RATE_MS, false);
+  sched_put_task(&ui_task, UI_REFRESH_RATE_MS, true);
   LOG("Loaded mod_ui.");
 }
 

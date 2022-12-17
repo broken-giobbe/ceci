@@ -2,8 +2,8 @@
 
 // The latest millis() value when loop() was entered
 static unsigned long entry_time;
-// Elapsed time (time spent doing stuff) during the last loop() run
-static unsigned long elapsed_time;
+// The latest millis() when the idle loop was entered
+static unsigned long idle_time;
 // Tasks to run
 static task_t tasks[SCHED_NUM_TASKS] = {0};
 // Tasklets to run
@@ -57,11 +57,6 @@ int sched_put_taskID(size_t id, void (*taskFunction)(void), unsigned long rate, 
   return id;
 }
 
-uint8_t sched_get_CPU_usage()
-{
-  return (100*elapsed_time)/SCHED_TICK_MS;
-}
-
 int sched_get_taskID(void (*taskFunction)(void))
 {
   int id = -1;
@@ -113,7 +108,20 @@ void loop()
 #ifdef SCHED_USE_BLINKENLIGHT
   digitalWrite(LED_BUILTIN, HIGH);
 #endif
-  // sleep until the next full tick
-  elapsed_time = millis() - entry_time;
-  delay(SCHED_TICK_MS - (elapsed_time % SCHED_TICK_MS));
+
+  // idle loop (seep until there's stuff to do)
+  idle_time = millis();
+  
+  unsigned long sleep_ms = ULONG_MAX;
+  for(size_t i = 0; i < SCHED_NUM_TASKS; i++)
+  {
+    if (!tasks[i].taskFunc)
+      continue;
+
+    unsigned long ms_to_task = tasks[i].rateMillis - (idle_time - tasks[i].lastRunMillis);
+
+    if (ms_to_task < (sleep_ms - SLEEP_SLACK_MS))
+      sleep_ms = ms_to_task; 
+  }
+  delay(sleep_ms);
 }

@@ -1,14 +1,13 @@
 /*
  * Quick and Dirty Scheduler for repetitive tasks
  * 
- * As the name says, the scheduler is very basic: it decides which task to run every SCHED_RATE_MS.
- * It keeps track of the last run time of each task and,
+ * As the name says, the scheduler is very basic: it keeps track of the last run time of each task and,
  * if current_millis - last_run_time is greater than or equal to the time interval between task runs,
  * then the selected task is run. If no task has to be run the it sleeps until the next iteration.
- * So basically each task function is executed in a periodic fashion.
+ * Therefore, each task function is executed periodically every rate milliseconds.
  * 
  * Given how simple the scheduler is, there's an implicit support of task priority.
- * The tasks as run in a FIFO fashion with respect to calls of the sched_put_task() function. 
+ * The tasks are run in a FIFO fashion with respect to calls of the sched_put_task() function. 
  * So, the first task in the list is the first to be run.
  * 
  * NOTE: this scheduler hijacks your loop() function. So avoid writing your own and just divide your
@@ -18,11 +17,11 @@
 #define QD_SCHED_H
 
 /* 
- * The scheduler desicides what to do every SCHED_TICK_MS milliseconds.
- * The less frequent the ticks (the higher SCHED_TICKS_MS) te more time is spent sleeping,
- * at the expense of scheduling accuracy.
+ * This scheduler sleeps when there are no tasks to run. The sleep time is the minimum that
+ * guarantees that tasks are run correcty at their chosen rate. To reduce wakeups, tasks
+ * can be delayed up to this ms amount to allow for longer sleep times by grouping them together
  */
-#define SCHED_TICK_MS 50
+#define SLEEP_SLACK_MS 50
 
 /* 
  * SCHED_NUM_TASKS controls the maximum number of tasks that can be allocated.
@@ -89,11 +88,6 @@ int sched_put_task(void (*taskFunction)(void), unsigned long rate, bool run_imme
  * Returns the task ID or -1 if the insertion failed.
  */
 int sched_put_taskID(size_t id, void (*taskFunction)(void), unsigned long rate, bool run_immediately);
-
- /*
-  * Returns the CPU usage as a percentage
-  */
-uint8_t sched_get_CPU_usage();
 
  /*
   * Returns the task ID for the task with the same function pointer as the one in
