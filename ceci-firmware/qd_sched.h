@@ -79,15 +79,7 @@ int sched_put_rt_tasklet(void (*taskletFunction)(void*), void* param, unsigned l
  *  
  * Returns the task ID or -1 if the insertion failed.
  */
-int sched_put_task(void (*taskFunction)(void), unsigned long rate, bool run_immediately); 
-
- /*
- * Put a task in the scheduler, specifying the task ID.
- * NOTE: if a task with the same ID already exists it will be overwritten.
- * 
- * Returns the task ID or -1 if the insertion failed.
- */
-int sched_put_taskID(size_t id, void (*taskFunction)(void), unsigned long rate, bool run_immediately);
+int sched_put_task(void (*taskFunction)(void), unsigned long rate, bool run_immediately);
 
  /*
   * Returns the task ID for the task with the same function pointer as the one in
