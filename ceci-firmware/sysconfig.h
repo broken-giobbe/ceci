@@ -8,7 +8,7 @@
  *                      Also uses MQTT to publish its output state
  *  - mod_relay      -> Enables or disables a relay depending on data received on its relative MQTT topic
  *  - mod_UI         -> Presents the users with a screen and buttons. It allows to present the sensor readings and control the thermostat using buttons.
- *                      I've yet to decide to make it configurable or set mod_thermostat as a hard requirement.
+ *                      Requires mod_thermostat to be of any use.
  * 
  * Once a module is enabled, its parameters are read from an .ini config file. Each section of the file corresponds to the module to be cofigured.
  * There is also a global section for the WiFi network parameters and any other config variable that affects all the modules.
@@ -41,17 +41,19 @@
  * 
  * If HAS_MOD_THERMOSTAT is defined the application will embed and load this module.
  */
-//#define HAS_MOD_THERMOSTAT
+#define HAS_MOD_THERMOSTAT
 
 /**
  * Config for mod_relay.
  * 
  * If HAS_MOD_RELAY is defined the application will embed and load this module.
  */
-//#define HAS_MOD_RELAY
+#define HAS_MOD_RELAY
 
 // Port where the heating control realy is connected
-#define HEATER_PORT D7
+// D7 for hardware version 1.x
+// D8 for hardware version 2.x
+#define HEATER_PORT D8
 
 /**
  * Config for mod_UI.
@@ -61,7 +63,7 @@
 //#define HAS_MOD_UI
 
 // OLED Reset pin # (or -1 if sharing Arduino reset pin)
-#define OLED_RESET -1 
+#define OLED_RESET -1
 
 // Which pin is the UP button attached to?
 #define UP_BUTTON_GPIO D5
@@ -79,26 +81,14 @@
  * Ambient sensor driver options
  */
 // Use the Bosch BME680 temperature/humidity/pressure/gas sensor
-#define BME680_TEMP_SENSOR
+//#define BME680_TEMP_SENSOR
  
 // Use the HTU2X temperature/humidity sensor
 //#define HTU2X_TEMP_SENSOR
 
 // Use the LM75 temperature sensor and set the I2C address
-//#define LM75_TEMP_SENSOR
+#define LM75_TEMP_SENSOR
 #define LM75_SENSOR_ADDRESS 0x4F
-
-// The precision used to return temperature and humidity readings
-#ifdef LM75_TEMP_SENSOR
-#define SENSOR_PRECISION 0.5
-#else
-#define SENSOR_PRECISION 0.1
-#endif
-
-/*
- * Serial port baud rate
- */
-#define UART_BAUD_RATE 115200
 
 /*
  * Default size in bytes for various text buffers. Set it big enough ;)

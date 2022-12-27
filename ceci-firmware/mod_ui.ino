@@ -12,7 +12,7 @@
 #include <Adafruit_SSD1306.h>
 
 // rate at which the UI is updated
-#define UI_REFRESH_RATE_MS 50
+#define UI_REFRESH_RATE_MS 60
 
 // This constant defines how long the gui should wait before going back to the home screen
 #define GO_BACK_HOME_MS 3000
@@ -32,8 +32,6 @@ static switch_state_t dn_btn_state = BTN_RELEASED;
 
 static gui_state_t gui_state = HOME;
 static unsigned long state_change_millis = 0;
-static float target_temp_new = 20.0; // new target temperature, to be saved on exit
-static unsigned int tstat_mode_new = 0; // new thermostat mode, to be saved on exit
 
 /*
  * State machine for the switches.
@@ -76,6 +74,10 @@ switch_state_t btn_state_machine(switch_state_t state, int pin)
 
 void ui_task(void)
 {
+  // local variables to change the thermostat settings when switching state
+  static float tstat_target_temp = thermostat_get_temp();
+  static float tstat_mode = thermostat_get_mode();
+  
   // Run the button state machine
   up_btn_state = btn_state_machine(up_btn_state, UP_BUTTON_GPIO);
   dn_btn_state = btn_state_machine(dn_btn_state, DN_BUTTON_GPIO);
@@ -99,17 +101,15 @@ void ui_task(void)
       // have a look here: https://www.arduino.cc/reference/en/language/variables/data-types/stringobject/
       display.println(String(get_temperature(SENSOR_NOWAKE).value, 1));
 
-      if ((up_btn_state == KEYRELEASE) && (dn_btn_state == KEYRELEASE))
+      if ((up_btn_state == KEYRELEASE) && (dn_btn_state == KEYRELEASE)) { // both buttons pressed and released
         gui_state = SET_MODE;
-      else if ((up_btn_state == KEYRELEASE) || (dn_btn_state == KEYRELEASE))
+        tstat_mode = thermostat_get_mode(); // update the mode before changing state
+      } else if ((up_btn_state == KEYRELEASE) || (dn_btn_state == KEYRELEASE)) { // up or down pressed and released
         gui_state = SET_TEMP;
-
-      // TODO: load tstat_mode_new and target_temp_new
-      //if (dn_btn_state == KEYPRESS) // software reset with long down button press to put the device in download mode
-      //  if ((millis() - state_change_millis) >= 3*GO_BACK_HOME_MS)
-      //    ESP.restart();
-      //else
-        state_change_millis = millis();
+        tstat_target_temp = thermostat_get_temp();
+      }
+      
+      state_change_millis = millis();
       break;
       
     case SET_TEMP:
@@ -119,19 +119,19 @@ void ui_task(void)
 
       display.setCursor(4*CHAR_WIDTH, (CHAR_HEIGHT + CHAR_HEIGHT/2) + 2*CHAR_HEIGHT);
       display.setTextSize(4);
-      display.println(String(target_temp_new, 1));
+      display.println(String(tstat_target_temp, 1));
       
       if ((up_btn_state == KEYRELEASE) && (dn_btn_state != KEYRELEASE)) { // react to up button only
-        target_temp_new += TEMP_INCDEC;
+        tstat_target_temp += TEMP_INCDEC;
         state_change_millis = millis();
       } else if ((dn_btn_state == KEYRELEASE) && (up_btn_state != KEYRELEASE)) { // react to down button only
-        target_temp_new -= TEMP_INCDEC;
+        tstat_target_temp -= TEMP_INCDEC;
         state_change_millis = millis();
       }
       
       if ((millis() - state_change_millis) >= GO_BACK_HOME_MS) {
         gui_state = HOME;
-        // TODO: save temperature settings
+        thermostat_set_temp(tstat_target_temp);
       }
       break;
     
@@ -143,24 +143,37 @@ void ui_task(void)
       display.setCursor(5*CHAR_WIDTH, (CHAR_HEIGHT + CHAR_HEIGHT/2) + 2*CHAR_HEIGHT);
       display.setTextSize(4);
 
-      if (tstat_mode_new == 0)
-          display.println("AUTO");
-      else if (tstat_mode_new == 1)
+      if (tstat_mode == '0')
           display.println("OFF");
-      else if (tstat_mode_new == 2)
+      else if (tstat_mode == '1')
           display.println("ON");
+      else if (tstat_mode == 'A')
+          display.println("AUTO");
 
       if ((up_btn_state == KEYRELEASE) && (dn_btn_state != KEYRELEASE)) { // react to up button only
-        tstat_mode_new = (tstat_mode_new + 1) %3;
+        if (tstat_mode == '0') // 0 -> A
+          tstat_mode = 'A';
+        else if (tstat_mode == 'A') // A -> 1
+          tstat_mode = '1';
+        else if (tstat_mode == '1') // 1 -> 0
+          tstat_mode = '0';
+        
         state_change_millis = millis();
+        
       } else if ((dn_btn_state == KEYRELEASE) && (up_btn_state != KEYRELEASE)) { // react to down button only
-        tstat_mode_new = (tstat_mode_new - 1) %3;
+        if (tstat_mode == 'A') // 0 <- A
+          tstat_mode = '0';
+        else if (tstat_mode == '0') // 0 <- 1
+          tstat_mode = '1';
+        else if (tstat_mode == '1') // A <- 1
+          tstat_mode = 'A';
+        
         state_change_millis = millis();
       }
      
       if ((millis() - state_change_millis) >= GO_BACK_HOME_MS) {
         gui_state = HOME;
-        // TODO: save mode settings
+        thermostat_set_mode(tstat_mode);
       }
       break;
   }
@@ -194,7 +207,7 @@ void mod_ui_init(void)
   pinMode(DN_BUTTON_GPIO, INPUT_PULLUP);
 
   // start UI task
-  sched_put_task(&ui_task, UI_REFRESH_RATE_MS, false);
+  sched_put_task(&ui_task, UI_REFRESH_RATE_MS, true);
   LOG("Loaded mod_ui.");
 }
 

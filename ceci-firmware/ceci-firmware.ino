@@ -18,6 +18,9 @@
 // Facility used for logging messages to the serial port
 #define LOG(fmt, ...) Serial.printf("[%lu, %s] " fmt "\n", millis(), __func__, ##__VA_ARGS__)
 
+//Serial port baud rate
+#define UART_BAUD_RATE 115200
+
 // This node needs a name
 static String node_name;
 
@@ -100,7 +103,7 @@ void setup()
   // now that the drivers have been initialized the moules can be initialized too
   mod_thermostat_init(conf);
   mod_sensors_init(conf);
-  //mod_relay_init(conf);
+  mod_relay_init(conf);
   
   // Last but not least wifi conenction parameters
   String ssid = conf_getStr(conf, "global", "wifi_ssid");

@@ -1,5 +1,5 @@
 /*
- * TempSensor implementation
+ * AmbientSensor implementation
  */
 #include "AmbientSensor.h"
 
@@ -19,6 +19,9 @@
 #include <M2M_LM75A.h>
 #endif
 
+// macro to round sensor readings to the required precision
+#define ROUND_TO_SENSOR_PRECISION(value) roundf(value/SENSOR_PRECISION) * SENSOR_PRECISION;
+
 // offset to subtract from temperature readings
 static float temp_offset = 0;
 
@@ -28,7 +31,7 @@ static temperature_t last_temp = { .value = 0.0, .valid = false };
 static humidity_t last_hmdt = { .value = 0.0, .valid = false };
 // last temperature reading
 static pressure_t last_pres = { .value = 0.0, .valid = false };
-// last humidity reading
+// last air quality reading
 static air_quality_t last_qual = { .value = 0.0, .valid = false };
 
 // timestamp for the readings above
@@ -78,9 +81,9 @@ void sensor_read()
   float temp = htu21d.readTemperature();
   float humd = htu21d.readHumidity();
   
-  last_temp.value = roundf(temp/SENSOR_PRECISION) * SENSOR_PRECISION;
+  last_temp.value = ROUND_TO_SENSOR_PRECISION(temp);
   last_temp.value -= temp_offset; // subtract temperature offset
-  last_hmdt.value = roundf(humd/SENSOR_PRECISION) * SENSOR_PRECISION;
+  last_hmdt.value = ROUND_TO_SENSOR_PRECISION(humd);
   
   last_temp.valid = ((temp == ERROR_BAD_CRC) || (temp == ERROR_I2C_TIMEOUT)) ? false : true;
   last_hmdt.valid = ((humd == ERROR_BAD_CRC) || (humd == ERROR_I2C_TIMEOUT)) ? false : true;
@@ -102,7 +105,7 @@ void sensor_read()
 {
   float temp = lm75.getTemperature();
   
-  last_temp.value = roundf(temp/SENSOR_PRECISION) * SENSOR_PRECISION;
+  last_temp.value = ROUND_TO_SENSOR_PRECISION(temp);
   last_temp.value -= temp_offset; // subtract temperature offset
   
   last_temp.valid = (temp == LM75A_INVALID_TEMPERATURE) ? false : true;
@@ -113,7 +116,18 @@ void sensor_read()
 #endif
 
 #ifdef BME680_TEMP_SENSOR
+
 static Adafruit_BME680 bme; // I2C, with default address
+
+/*
+ * Since I'm not that interest in a standard quality metric, I'd rather
+ * have the sensor report an "index" capped at 100.0
+ * 
+ * To do so, an absolute maximum is kept for the sensor resistance readings and 
+ * the quality value is normalized to 100.0 taking this maximum into account.
+ * The maximum is given an initial meaningful value to speed up convergence.
+ */
+static float max_res_reading = 5e3;
 
 void temp_sensor_init(float offset)
 {
@@ -125,8 +139,8 @@ void temp_sensor_init(float offset)
   bme.setHumidityOversampling(BME680_OS_4X);
   bme.setPressureOversampling(BME680_OS_4X);
   bme.setIIRFilterSize(BME680_FILTER_SIZE_0);
-  //bme.setODR(BME68X_ODR_NONE);
-  bme.setGasHeater(320, 100);
+  bme.setODR(BME68X_ODR_1000_MS);
+  bme.setGasHeater(320, 150);
 }
 
 void sensor_read()
@@ -139,25 +153,18 @@ void sensor_read()
     return;
   }
 
-  last_temp.value = roundf(bme.temperature/SENSOR_PRECISION) * SENSOR_PRECISION;
+  last_temp.value = ROUND_TO_SENSOR_PRECISION(bme.temperature);
   last_temp.value -= temp_offset; // subtract temperature offset
   last_temp.valid = true;
   
-  last_hmdt.value = roundf(bme.humidity/SENSOR_PRECISION) * SENSOR_PRECISION;
+  last_hmdt.value = ROUND_TO_SENSOR_PRECISION(bme.humidity);
   last_hmdt.valid = true;
 
-  last_pres.value = roundf((bme.pressure / 100.0)/SENSOR_PRECISION) * SENSOR_PRECISION;
+  last_pres.value = ROUND_TO_SENSOR_PRECISION(bme.pressure / 100.0);
   last_pres.valid = true;
-  
-  // Apparently, the sensor tends to cool down a bit between measurements reporting
-  // lower and lower values. To keep it warm and cozy we need to burn a few measurements.
-  // This is not something found in the datasheet. It has been found by trial and error.
-  uint32_t gas_acc;
-  for(int i = 0; i < 3; i++)
-    gas_acc = bme.readGas();
 
-  // gas_acc now contains a resistance value in ohms. I want to report it in Kohm
-  last_qual.value = roundf((gas_acc/1.0e3)/SENSOR_PRECISION) * SENSOR_PRECISION;
+  max_res_reading = fmaxf(max_res_reading, bme.gas_resistance);
+  last_qual.value = ROUND_TO_SENSOR_PRECISION((100.0 * bme.gas_resistance) / max_res_reading);
   last_qual.valid = true;
 }
 #endif

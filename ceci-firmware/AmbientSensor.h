@@ -24,6 +24,13 @@
 // there's no need to bother the sensor
 #define SENSOR_NOWAKE ULONG_MAX
 
+// The precision used to return temperature and humidity readings
+#ifdef LM75_TEMP_SENSOR
+#define SENSOR_PRECISION 0.5
+#else
+#define SENSOR_PRECISION 0.1
+#endif
+
 /*
  * Datatype for sensor readings.
  * If valid is false the value is unreliable and should be discarded
