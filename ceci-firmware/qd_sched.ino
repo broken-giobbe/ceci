@@ -2,12 +2,10 @@
 
 // The latest millis() value when loop() was entered
 static unsigned long entry_time;
-// The latest millis() when the idle loop was entered
-static unsigned long idle_time;
 // Tasks to run
 static task_t tasks[SCHED_NUM_TASKS] = {0};
 // number of tasks stored in tasks array
-static int num_tasks = 0;
+static size_t num_tasks = 0;
 // Tasklets to run
 static rt_tasklet_t tasklets[SCHED_NUM_TASKLETS] = {0};
 

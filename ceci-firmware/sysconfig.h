@@ -48,7 +48,7 @@
  * 
  * If HAS_MOD_RELAY is defined the application will embed and load this module.
  */
-#define HAS_MOD_RELAY
+//#define HAS_MOD_RELAY
 
 // Port where the heating control realy is connected
 // D7 for hardware version 1.x
@@ -84,10 +84,10 @@
 //#define BME680_TEMP_SENSOR
  
 // Use the HTU2X temperature/humidity sensor
-//#define HTU2X_TEMP_SENSOR
+#define HTU2X_TEMP_SENSOR
 
 // Use the LM75 temperature sensor and set the I2C address
-#define LM75_TEMP_SENSOR
+//#define LM75_TEMP_SENSOR
 #define LM75_SENSOR_ADDRESS 0x4F
 
 /*
