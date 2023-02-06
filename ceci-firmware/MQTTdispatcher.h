@@ -16,7 +16,7 @@ PubSubClient mqttClient(wifiClient);
 
 // Rate in milliseconds at which the MQTT function loop() is called
 // used for keepalive and to react to subscriptions.
-#define MQTT_LOOP_RATE 1000L  // for stuff that needs to react to subscription immediately
+#define MQTT_LOOP_RATE 1000L  // for stuff that needs to react to subscriptions immediately
 //#define MQTT_LOOP_RATE 1000*(MQTT_KEEPALIVE / 2) // for sensors with no subscriptions
 
 // Size of the buffer for reading/sending MQTT messages

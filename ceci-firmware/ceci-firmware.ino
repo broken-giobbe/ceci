@@ -4,6 +4,7 @@
 #include <ESP8266WiFi.h>
 #include "FS.h"
 #include <SPIFFSIniFile.h>
+#include <qd_sched.h>
 
 #include "sysconfig.h"
 #include "MQTTdispatcher.h"
