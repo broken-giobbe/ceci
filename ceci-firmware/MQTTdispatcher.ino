@@ -74,21 +74,18 @@ void mqttCallback(const char* topic, byte* payload, size_t len)
   }
 }
 
-void mqtt_pub_tasklet_func(void* par)
+void mqtt_publish(mqtt_msg* msg)
 {
-  if (par == NULL) return;
-  
-  mqtt_msg msg = *((mqtt_msg*)par); // void* cannot be dereferenced
+  if (msg == NULL) return;
   
   if(!mqttClient.connected())
   {
-    // retry in MQTT_LOOP_RATE to allow for reconnection
-    sched_put_rt_tasklet(&mqtt_pub_tasklet_func, par, MQTT_LOOP_RATE);
+    LOG("Client not connected. (message: %s -> %s)", msg->topic, msg->str_msg);
     return;
   }
   
-  if(!mqttClient.publish(msg.topic, msg.str_msg, msg.retained))
-    LOG("Publish failed: %s -> %s", msg.topic, msg.str_msg);
+  if(!mqttClient.publish(msg->topic, msg->str_msg, msg->retained))
+    LOG("Publish failed. (message: %s -> %s)", msg->topic, msg->str_msg);
 }
 
 int mqtt_register_cb(String topic, void (*cb_func)(byte*, size_t))

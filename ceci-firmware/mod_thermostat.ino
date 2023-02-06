@@ -86,19 +86,7 @@ void thermostat_set_mode(char mode_ch)
   state.final_temp = state.target_temp;
   state.anticipator_temp = 0.0;
   
-  if (mode_ch == '0')
-  {
-      decision_msg.str_msg = "0";
-      mqtt_pub_in_tasklet(decision_msg);
-  }
-
-  if (mode_ch == '1')
-  {
-    decision_msg.str_msg = "1";
-    mqtt_pub_in_tasklet(decision_msg);
-  }
-  
-  // reschedule thermostat control loop to run immediately (after the tasklets above, if any)
+  // reschedule thermostat control loop to run immediately
   sched_reschedule_taskID(sched_get_taskID(&thermostatControlLoop), 0);
 }
 
@@ -107,14 +95,30 @@ void thermostat_set_mode(char mode_ch)
  */
 void thermostatControlLoop(void)
 {
-  // Publish status (stat is static to survive function invocation)
-  static char stat[TXT_BUF_SIZE];
+  // Publish status
+  char stat[TXT_BUF_SIZE];
   snprintf(stat, TXT_BUF_SIZE, "{\"mode\":\"%c\", \"target_t\":%.2f, \"final_t\":%.2f}",
                                state.mode, state.target_temp, state.final_temp);
   tstat_status_msg.str_msg = stat;
-  mqtt_pub_in_tasklet(tstat_status_msg);
-  
-  // Continue with the function only if the thermostat mode is set to auto ('A')
+  mqtt_publish(&tstat_status_msg);
+
+  // Thermostat off. Publish "0" to the relay and exit
+  if (state.mode == '0')
+  {
+      decision_msg.str_msg = "0";
+      mqtt_publish(&decision_msg);
+      return;
+  }
+
+  // Thermostat always on. Publish "1" to the relay and exit
+  if (state.mode == '1')
+  {
+    decision_msg.str_msg = "1";
+    mqtt_publish(&decision_msg);
+    return;
+  }
+
+  // Continue only if state is set to A
   if (state.mode != 'A')
     return;
   
@@ -129,14 +133,14 @@ void thermostatControlLoop(void)
     state.anticipator_temp += tstat_anticipator;
     state.final_temp = state.target_temp + tstat_hysteresis - state.anticipator_temp;
     decision_msg.str_msg = "1";
-    mqtt_pub_in_tasklet(decision_msg);
+    mqtt_publish(&decision_msg);
   } else {
     // The anticipator cools down faster if the temperature is below target
     float cooldown_mult = 1.0 + state.target_temp - temp.value;
     state.anticipator_temp = fmaxf(0, state.anticipator_temp - (tstat_anticipator * cooldown_mult));
     state.final_temp = state.target_temp - tstat_hysteresis - state.anticipator_temp;
     decision_msg.str_msg = "0";
-    mqtt_pub_in_tasklet(decision_msg);
+    mqtt_publish(&decision_msg);
   }
 }
 
@@ -186,9 +190,6 @@ void mod_thermostat_init(SPIFFSIniFile* conf)
   mqtt_register_cb(target_temp_topic, &target_temp_cb);
   
   sched_put_task(&thermostatControlLoop, SECS_TO_MILLIS(tstat_sample_interval_sec), true);
-  
-  // Publish the first decision, to tell that this node supports mod_thermostat
-  mqtt_pub_in_tasklet(decision_msg);
   
   LOG("Loaded mod_thermostat.");
 }

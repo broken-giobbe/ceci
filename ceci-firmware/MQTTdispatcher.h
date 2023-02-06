@@ -38,17 +38,12 @@ typedef struct mqtt_msg mqtt_msg;
 void mqtt_init(SPIFFSIniFile* conf);
 
 /*
- * Function used to publish MQTT message strings in a tasklet context.
- * This function is useful to send MQTT message from a qd_sched task,
- * without taking too long to complete and let other tasks do their stuff.
- * Morevoer, to avoid losing messages, this function automatically reschedules
- * itself if MQTT is not connected.
+ * Function used to publish MQTT message strings for a certain topic.
  * 
- * params is a pointer to a mqtt_msg struct. Make sure the conten of such struct
- * survive after the function that put this rt_tasklet in the scheduler queue has terminated.
+ * Parameters:
+ *     msg -> pointer to a mqtt_msg struct containing the message to send
  */
-void mqtt_pub_tasklet_func(void* par);
-#define mqtt_pub_in_tasklet(msg) sched_put_rt_tasklet(&mqtt_pub_tasklet_func, &(msg), 0L);
+void mqtt_publish(mqtt_msg* msg);
 
 /*
  * Subscrive to a certain topic and register a callback for it.

@@ -6,27 +6,6 @@ static unsigned long entry_time;
 static task_t tasks[SCHED_NUM_TASKS] = {0};
 // number of tasks stored in tasks array
 static size_t num_tasks = 0;
-// Tasklets to run
-static rt_tasklet_t tasklets[SCHED_NUM_TASKLETS] = {0};
-
-int sched_put_rt_tasklet(void (*taskletFunction)(void*), void* param, unsigned long delayMillis)
-{
-   size_t emptyIdx = 0;
-  
-  // search for the first empty task entry within tasks
-  while(tasklets[emptyIdx].taskletFunc != 0)
-  {
-    emptyIdx++;
-    if(emptyIdx == SCHED_NUM_TASKLETS)
-      return -1;
-  }
-
-  tasklets[emptyIdx].taskletFunc = taskletFunction;
-  tasklets[emptyIdx].param = param;
-  tasklets[emptyIdx].reqMillis = millis();
-  tasklets[emptyIdx].delayMillis = delayMillis;
-  return emptyIdx;
-}
 
 int sched_put_task(void (*taskFunction)(void), unsigned long rate, bool run_immediately)
 {
@@ -80,16 +59,6 @@ void loop()
 #endif
 
   entry_time = millis();
-
-  // tasklets have higher priority than tasks
-  for(size_t i = 0; i < SCHED_NUM_TASKLETS; i++)
-  {
-    if (tasklets[i].taskletFunc && (entry_time - tasklets[i].reqMillis) >= tasklets[i].delayMillis)
-    {
-      (*tasklets[i].taskletFunc)(tasklets[i].param);
-      tasklets[i].taskletFunc = NULL; // Once the tasklet is run forget about it
-    }
-  }
 
   for(size_t i = 0; i < num_tasks; i++)
   {
