@@ -147,9 +147,6 @@ void setup()
   // Initialize UI & display, to start showing something during boot
   mod_ui_init();
   
-  // initialize the temperature sensor with the correct offset
-  temp_sensor_init(conf_getFloat(conf, "global", "temp_offset"));
-
   // Initialize MQTT
   mqtt_init(conf);
 

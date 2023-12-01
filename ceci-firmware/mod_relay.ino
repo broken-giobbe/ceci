@@ -24,16 +24,24 @@ void relay_enable_cb(byte* payload, size_t len)
     case '0':
       digitalWrite(HEATER_PORT, LOW);
       relay_msg.str_msg = "0";
-      mqtt_pub_in_tasklet(relay_msg);
+      mqtt_publish(&relay_msg);
       break;
     case '1':
       digitalWrite(HEATER_PORT, HIGH);
       relay_msg.str_msg = "1";
-      mqtt_pub_in_tasklet(relay_msg);
+      mqtt_publish(&relay_msg);
       break;
     default:
       LOG("Invalid relay command received: %c", payload[0]);
   }
+}
+
+/*
+ * Send relay status periodically
+ */
+void relay_heartbeat()
+{
+  mqtt_publish(&relay_msg);
 }
 
 void mod_relay_init(SPIFFSIniFile* conf)
@@ -54,8 +62,7 @@ void mod_relay_init(SPIFFSIniFile* conf)
   relay_msg.str_msg = "0";
   relay_msg.retained = false;
   
-  // Publish the first status, to tell that this node supports the relay
-  mqtt_pub_in_tasklet(relay_msg);
+  sched_put_task(&relay_heartbeat, 100*MQTT_LOOP_RATE, true);
   
   LOG("Loaded mod_relay.");
 }

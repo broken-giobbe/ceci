@@ -52,7 +52,10 @@ void mod_sensors_publish(void)
 void mod_sensors_init(SPIFFSIniFile* conf)
 {
   char buf[TXT_BUF_SIZE]; // buffer for reading config file
-
+  
+  // initialize the temperature sensor with the correct offset
+  temp_sensor_init(conf_getFloat(conf, "global", "temp_offset"));
+  
   // This module needs the following config variables
   conf->getValue("mod_sensors", "pub_interval_sec", buf, TXT_BUF_SIZE, pub_interval_sec);
   sensors_topic = conf_getStr(conf, "mod_sensors", "base_topic") + node_name;

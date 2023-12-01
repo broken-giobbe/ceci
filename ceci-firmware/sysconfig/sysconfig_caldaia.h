@@ -14,6 +14,11 @@
 #define HEATER_PORT D8
 
 /*
+ * Default size in bytes for various text buffers. Set it big enough ;)
+ */
+#define TXT_BUF_SIZE 128
+
+/*
  * Name for the node config file in the SPIFFS
  */
 #define CONFIG_FILENAME "/config-caldaia.ini"
