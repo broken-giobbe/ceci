@@ -6,7 +6,7 @@
 #include <SPIFFSIniFile.h>
 #include <qd_sched.h>
 
-#include "sysconfig.h"
+#include "sysconfig/sysconfig.h"
 #include "MQTTdispatcher.h"
 #include "AmbientSensor.h"
 #include "modules.h"

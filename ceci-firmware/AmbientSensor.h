@@ -10,8 +10,6 @@
 #ifndef TEMPSENSOR_H
 #define TEMPSENSOR_H
 
-#include "sysconfig.h"
-
 // Give the temperature sensor some rest between readings. Reduces self-heating.
 // If two humidity/temperature requests are made within this interval an old value is returned instead
 #define MIN_SAMPLE_INTERVAL_MS 1000UL

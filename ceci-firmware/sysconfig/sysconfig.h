@@ -29,6 +29,8 @@
 #ifndef SYSCONFIG_H
 #define SYSCONFIG_H
 
+#warning You should provide your sysconfig instead of this file!
+
 /**
  * Config for mod_sensors.
  * 
@@ -48,7 +50,7 @@
  * 
  * If HAS_MOD_RELAY is defined the application will embed and load this module.
  */
-//#define HAS_MOD_RELAY
+#define HAS_MOD_RELAY
 
 // Port where the heating control realy is connected
 // D7 for hardware version 1.x
@@ -60,7 +62,7 @@
  * 
  * If HAS_MOD_UI is defined the application will embed and load this module.
  */
-//#define HAS_MOD_UI
+#define HAS_MOD_UI
 
 // OLED Reset pin # (or -1 if sharing Arduino reset pin)
 #define OLED_RESET -1
