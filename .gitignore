@@ -53,7 +53,7 @@ boards.local.txt
 *.o
 *.a
 
-#Ignore files built by Visual Studio/Visual Micro
+# Ignore files built by Visual Studio/Visual Micro
 [Dd]ebug*/
 [Rr]elease*/
 .vs/
@@ -65,3 +65,5 @@ __vm/
 ceci-firmware/data/*
 !ceci-firmware/data/config-example.ini
 
+# Ignore platformio directory
+.pio/
