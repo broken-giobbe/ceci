@@ -9,14 +9,6 @@ struct dispatch_table_t {
 }dispatchTable[DISPATCH_TABLE_SIZE] = {"", 0};
 
 /**
- * Since the topics to subscribe to can change at any time, we keep track wether we should
- * (re)subscribe to the topics in the dispatch_table by means of this variable.
- * 
- * Set to true to force subscribe on first run.
- */
-bool needs_resubscribe = true;
-
-/**
  * MQTT utility function to (re)connect to the broker and to perform all the housekeeping stuff
  * for MQTT to work correctly
  */
@@ -25,31 +17,33 @@ void mqttKeepalive()
   if (!mqttClient.connected())
   {
     LOG("Connecting to server...");
+    String birthwill_topic = node_name + "/status";
 
-    if (mqttClient.connect(node_name.c_str())) {
+    bool result = mqttClient.connect(node_name.c_str(), NULL, NULL,
+                                     birthwill_topic.c_str(), 0, false, "Bye");
+
+    if (result) {
       LOG("Connection success.");
-      needs_resubscribe = true; // Upon connection to the server we always need to resubscribe
+	mqttClient.unsubscribe("#");
+
+      for (size_t i = 0; i < DISPATCH_TABLE_SIZE; i++)
+	{
+	  if(dispatchTable[i].cb_func != 0) {
+	    mqttClient.subscribe(dispatchTable[i].topic.c_str());
+          LOG("Subscribed to: %s", dispatchTable[i].topic.c_str());
+        }
+	}
+
+	// Publish a birth message
+	// (https://openpeerpower.io/docs/mqtt/birth_will/)
+      mqttClient.publish(birthwill_topic.c_str(), "Hello", false);
+
     } else {
       LOG("Connection failed: rc=%d", mqttClient.state());
       return; // retry next time, there's no point in continuing
     }
   }
 
-  if(needs_resubscribe == true)
-  {
-    mqttClient.unsubscribe("#");
-    
-    for (size_t i = 0; i < DISPATCH_TABLE_SIZE; i++)
-    {
-      if(dispatchTable[i].cb_func != 0) {
-        mqttClient.subscribe(dispatchTable[i].topic.c_str());
-        LOG("Subscribed to: %s", dispatchTable[i].topic.c_str());
-      }
-    }
-    
-    needs_resubscribe = false;
-  }
- 
   mqttClient.loop();
 }
 
@@ -91,7 +85,7 @@ void mqtt_publish(mqtt_msg* msg)
 int mqtt_register_cb(String topic, void (*cb_func)(byte*, size_t))
 {
   size_t emptyIdx = 0;
-  
+
   // search for the first empty entry in the dispatch table
   while(dispatchTable[emptyIdx].cb_func != 0)
   {
@@ -102,7 +96,12 @@ int mqtt_register_cb(String topic, void (*cb_func)(byte*, size_t))
 
   dispatchTable[emptyIdx].topic = topic;
   dispatchTable[emptyIdx].cb_func = cb_func;
-  needs_resubscribe = true;
+
+  if (mqttClient.connected()) {
+    mqttClient.subscribe(topic.c_str());
+    LOG("Subscribed to: %s", topic.c_str());
+  }
+
   return emptyIdx;
 }
 
