@@ -135,9 +135,7 @@ void thermostatControlLoop(void)
     decision_msg.str_msg = "1";
     mqtt_publish(&decision_msg);
   } else {
-    // The anticipator cools down faster if the temperature is below target
-    float cooldown_mult = 1.0 + state.target_temp - temp.value;
-    state.anticipator_temp = fmaxf(0, state.anticipator_temp - (tstat_anticipator * cooldown_mult));
+    state.anticipator_temp = fmaxf(0, state.anticipator_temp - tstat_anticipator);
     state.final_temp = state.target_temp - tstat_hysteresis - state.anticipator_temp;
     decision_msg.str_msg = "0";
     mqtt_publish(&decision_msg);
