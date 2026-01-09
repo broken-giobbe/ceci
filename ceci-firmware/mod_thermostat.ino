@@ -39,10 +39,10 @@ static float tstat_hysteresis = 0.5;
 /*
  * Decay rate when heating is off (0.0 = instant, 1.0 = no decay)
  *
- * Faster decay (0.85-0.90): Quicker recovery, may restart heating sooner
- * Slower decay (0.93-0.97): More conservative, prevents rapid cycling
+ * Faster decay (<=0.5): Quicker recovery, may restart heating sooner
+ * Slower decay (>0.5): More conservative, prevents rapid cycling
  */
-static float tstat_anticipator_decay = 0.92;
+static float tstat_anticipator_decay = 0.75;
 
 /*
  * Measurement interval in seconds (max 65535s). Default is 1 minute
@@ -78,7 +78,7 @@ char  thermostat_get_mode(void) { return state.mode; }
 
 void thermostat_set_temp(float temp)
 {
-  temp = fmaxf(0.0, temp);
+  temp = fmaxf(10.0, temp);
   temp = fminf(30.0, temp);
   
   state.target_temp = temp;
@@ -115,7 +115,7 @@ void thermostatControlLoop(void)
   // Publish status
   char stat[TXT_BUF_SIZE];
   snprintf(stat, TXT_BUF_SIZE, "{\"mode\":\"%c\", \"target_t\":%.2f, \"final_t\":%.2f}",
-                               state.mode, state.target_temp, state.final_temp);
+    state.mode, state.target_temp, state.final_temp);
   tstat_status_msg.str_msg = stat;
   mqtt_publish(&tstat_status_msg);
   
@@ -159,12 +159,16 @@ void thermostatControlLoop(void)
   {
     // While off: exponential decay (heat dissipates naturally)
     state.anticipator_temp *= tstat_anticipator_decay;
+    if (state.anticipator_temp < 0.01)
+      state.anticipator_temp = 0.0;
     
     state.final_temp = state.target_temp - tstat_hysteresis -
       state.anticipator_temp;
     decision_msg.str_msg = "0";
     mqtt_publish(&decision_msg);
   }
+  LOG("final_temp = %.2f anticipator_temp = %.3f",
+      state.final_temp, state.anticipator_temp);
 }
 
 /**
