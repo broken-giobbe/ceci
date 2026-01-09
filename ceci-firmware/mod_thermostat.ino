@@ -159,7 +159,7 @@ void thermostatControlLoop(void)
   {
     // While off: exponential decay (heat dissipates naturally)
     state.anticipator_temp *= tstat_anticipator_decay;
-    if (state.anticipator_temp < 0.01)
+    if (state.anticipator_temp < 0.005) // Round to two decimal digits
       state.anticipator_temp = 0.0;
     
     state.final_temp = state.target_temp - tstat_hysteresis -
