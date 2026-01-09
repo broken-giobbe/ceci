@@ -25,11 +25,28 @@
 
 #ifdef HAS_MOD_THERMOSTAT
 
-// anticipator setting
+/*
+ * Anticipator setting. Determines how fast heat accumulates (per loop
+ * iteration)
+ */
 static float tstat_anticipator = 0.005;
-// hysteresis setting
+
+/*
+ * Hysteresis setting
+ */
 static float tstat_hysteresis = 0.5;
-// Measurement interval in seconds (max 65535s). Default is 1 minute
+
+/*
+ * Decay rate when heating is off (0.0 = instant, 1.0 = no decay)
+ *
+ * Faster decay (0.85-0.90): Quicker recovery, may restart heating sooner
+ * Slower decay (0.93-0.97): More conservative, prevents rapid cycling
+ */
+static float tstat_anticipator_decay = 0.92;
+
+/*
+ * Measurement interval in seconds (max 65535s). Default is 1 minute
+ */
 static uint16_t tstat_sample_interval_sec = 60;
 
 // MQTT topic used for publishing thermostat decision
@@ -101,42 +118,50 @@ void thermostatControlLoop(void)
                                state.mode, state.target_temp, state.final_temp);
   tstat_status_msg.str_msg = stat;
   mqtt_publish(&tstat_status_msg);
-
-  // Thermostat off. Publish "0" to the relay and exit
+  
+  // Thermostat off
   if (state.mode == '0')
   {
       decision_msg.str_msg = "0";
       mqtt_publish(&decision_msg);
       return;
   }
-
-  // Thermostat always on. Publish "1" to the relay and exit
+  
+  // Thermostat always on
   if (state.mode == '1')
   {
     decision_msg.str_msg = "1";
     mqtt_publish(&decision_msg);
     return;
   }
-
+  
   // Continue only if state is set to A
   if (state.mode != 'A')
     return;
   
   temperature_t temp = get_temperature();
-  LOG("Temperature: %.2f valid: %s", temp.value, (temp.valid ? "true" : "false"));
-
+  LOG("Temperature: %.2f valid: %s", temp.value,
+      (temp.valid ? "true" : "false"));
   if (!temp.valid)
-    return; // Fail silently if the data is wrong
+    return;
   
-  if (temp.value <= state.final_temp) // actual temp is lower than expected -> heat up
+  if (temp.value <= state.final_temp) // too cold -> heat up
   {
+    // While heating: accumulate heat (like a resistor warming up)
     state.anticipator_temp += tstat_anticipator;
-    state.final_temp = state.target_temp + tstat_hysteresis - state.anticipator_temp;
+    
+    state.final_temp = state.target_temp + tstat_hysteresis - 
+      state.anticipator_temp;
     decision_msg.str_msg = "1";
     mqtt_publish(&decision_msg);
-  } else {
-    state.anticipator_temp = fmaxf(0, state.anticipator_temp - tstat_anticipator);
-    state.final_temp = state.target_temp - tstat_hysteresis - state.anticipator_temp;
+  } 
+  else // warm enough -> heating off
+  {
+    // While off: exponential decay (heat dissipates naturally)
+    state.anticipator_temp *= tstat_anticipator_decay;
+    
+    state.final_temp = state.target_temp - tstat_hysteresis -
+      state.anticipator_temp;
     decision_msg.str_msg = "0";
     mqtt_publish(&decision_msg);
   }
@@ -167,9 +192,14 @@ void mod_thermostat_init(SPIFFSIniFile* conf)
 {
   char buf[TXT_BUF_SIZE]; // buffer for reading config file
   
-  conf->getValue("mod_thermostat", "sample_interval_sec", buf, TXT_BUF_SIZE, tstat_sample_interval_sec);
-  conf->getValue("mod_thermostat", "hysteresis", buf, TXT_BUF_SIZE, tstat_hysteresis);
-  conf->getValue("mod_thermostat", "anticipator", buf, TXT_BUF_SIZE, tstat_anticipator);
+  conf->getValue("mod_thermostat", "sample_interval_sec", buf, TXT_BUF_SIZE, 
+      tstat_sample_interval_sec);
+  conf->getValue("mod_thermostat", "hysteresis", buf, TXT_BUF_SIZE,
+      tstat_hysteresis);
+  conf->getValue("mod_thermostat", "anticipator", buf, TXT_BUF_SIZE,
+      tstat_anticipator);
+  conf->getValue("mod_thermostat", "anticipator_decay", buf, TXT_BUF_SIZE,
+      tstat_anticipator_decay);
 
   String base_topic = conf_getStr(conf, "mod_thermostat", "base_topic");
 
